@@ -41,6 +41,10 @@ local Workspace = game:GetService("Workspace")
 
 local Player = Players.LocalPlayer
 
+-- nomes de sessao p/ os movers (veja Bypass V3)
+local MOVER_BV = "Mover" .. tostring(math.random(100000, 999999))
+local MOVER_BG = "Gyro" .. tostring(math.random(100000, 999999))
+
 -- ==================================================
 -- AREA EGG CYCLE (fase Dia/Noite do jogo)
 -- ==================================================
@@ -375,19 +379,23 @@ end
 
 local function SelfFlyTP(Destination, Speed, MyRun)
     CleanupFly()
+    -- stealth: cap de velocidade (snap/voo absurdo = movement check)
+    if _G.ASTHETIC_Stealth ~= false then
+        Speed = math.min(Speed, 350)
+    end
     local Hum, Root = GetHumanoid()
     if not Hum or not Root or Hum.Health <= 0 then return false end
     Hum.PlatformStand = true
 
     BodyVelocity = Instance.new("BodyVelocity")
-    BodyVelocity.Name = "AstheticBV"
+    BodyVelocity.Name = MOVER_BV
     BodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     BodyVelocity.P = 1250
     BodyVelocity.Velocity = Vector3.zero
     BodyVelocity.Parent = Root
 
     BodyGyro = Instance.new("BodyGyro")
-    BodyGyro.Name = "AstheticBG"
+    BodyGyro.Name = MOVER_BG
     BodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     BodyGyro.P = 3000
     BodyGyro.D = 500

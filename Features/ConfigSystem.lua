@@ -17,7 +17,8 @@ local CONFIG_FILE = CONFIG_FOLDER .. "/asthetic.json"
 
 local DefaultConfig = {
     SelectedMethod = "TeleportFly",
-    TeleportSpeed = 300
+    TeleportSpeed = 300,
+    Stealth = true
 }
 
 --==================================================
@@ -82,6 +83,10 @@ local function LoadConfig()
         Config.TeleportSpeed = math.clamp(DecodedData.TeleportSpeed, 50, 1100)
     end
 
+    if type(DecodedData.Stealth) == "boolean" then
+        Config.Stealth = DecodedData.Stealth
+    end
+
     print("[ASTHETIC] Config Loaded | Method: " .. Config.SelectedMethod .. " | Speed: " .. tostring(Config.TeleportSpeed))
 
     return Config
@@ -96,7 +101,8 @@ local function SaveConfig(Config)
 
     local DataToSave = {
         SelectedMethod = Config.SelectedMethod or DefaultConfig.SelectedMethod,
-        TeleportSpeed = Config.TeleportSpeed or DefaultConfig.TeleportSpeed
+        TeleportSpeed = Config.TeleportSpeed or DefaultConfig.TeleportSpeed,
+        Stealth = (Config.Stealth == nil) and DefaultConfig.Stealth or Config.Stealth
     }
 
     local EncodeSuccess, EncodedData = pcall(function()
@@ -128,6 +134,7 @@ end
 local function ApplyConfig(Config)
     _G.ASTHETIC_SelectedMethod = Config.SelectedMethod
     _G.ASTHETIC_TeleportSpeed = Config.TeleportSpeed
+    _G.ASTHETIC_Stealth = (Config.Stealth == nil) and true or Config.Stealth
 end
 
 --==================================================
@@ -165,7 +172,8 @@ _G.ASTHETIC_ConfigSystem = {
     Save = function()
         local Config = {
             SelectedMethod = _G.ASTHETIC_SelectedMethod or DefaultConfig.SelectedMethod,
-            TeleportSpeed = _G.ASTHETIC_TeleportSpeed or DefaultConfig.TeleportSpeed
+            TeleportSpeed = _G.ASTHETIC_TeleportSpeed or DefaultConfig.TeleportSpeed,
+            Stealth = (_G.ASTHETIC_Stealth == nil) and DefaultConfig.Stealth or _G.ASTHETIC_Stealth
         }
         return SaveConfig(Config)
     end,
@@ -173,7 +181,8 @@ _G.ASTHETIC_ConfigSystem = {
     Get = function()
         return {
             SelectedMethod = _G.ASTHETIC_SelectedMethod or DefaultConfig.SelectedMethod,
-            TeleportSpeed = _G.ASTHETIC_TeleportSpeed or DefaultConfig.TeleportSpeed
+            TeleportSpeed = _G.ASTHETIC_TeleportSpeed or DefaultConfig.TeleportSpeed,
+            Stealth = (_G.ASTHETIC_Stealth == nil) and DefaultConfig.Stealth or _G.ASTHETIC_Stealth
         }
     end,
 

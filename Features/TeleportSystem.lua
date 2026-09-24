@@ -11,6 +11,10 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Player = Players.LocalPlayer
+
+-- nomes de sessao: blacklist literal de "AstheticBV/BG" nao pega
+local MOVER_BV = "Mover" .. tostring(math.random(100000, 999999))
+local MOVER_BG = "Gyro" .. tostring(math.random(100000, 999999))
 local Container = workspace:FindFirstChild("AreaEggSlotsClient")
 if not Container then
     pcall(function()
@@ -269,7 +273,7 @@ local function CleanupMovers()
     local Hum, Root = GetHumanoid()
     if Root then
         for _, Child in ipairs(Root:GetChildren()) do
-            if Child.Name == "AstheticBV" or Child.Name == "AstheticBG" then
+            if Child.Name == MOVER_BV or Child.Name == MOVER_BG then
                 pcall(function() Child:Destroy() end)
             end
         end
@@ -400,14 +404,14 @@ local function FlyTP(Destination, Speed, UseShotTP, IsSafeZone, Callback)
     Hum.PlatformStand = true
 
     BodyVelocity = Instance.new("BodyVelocity")
-    BodyVelocity.Name = "AstheticBV"
+    BodyVelocity.Name = MOVER_BV
     BodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     BodyVelocity.P = 1250
     BodyVelocity.Velocity = Vector3.zero
     BodyVelocity.Parent = Root
 
     BodyGyro = Instance.new("BodyGyro")
-    BodyGyro.Name = "AstheticBG"
+    BodyGyro.Name = MOVER_BG
     BodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     BodyGyro.P = 3000
     BodyGyro.D = 500

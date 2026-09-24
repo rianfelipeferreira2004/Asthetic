@@ -800,6 +800,101 @@ AntiAFKCheckButton.MouseButton1Click:Connect(function()
 end)
 
 --==================================================
+-- FEATURE 8: STEALTH MODE (anti-kick)
+-- ON = voo capped 350 sem instant + sem restore de vida
+-- (morte vira respawn limpo, farm retoma sozinho).
+-- OFF = velocidade maxima + instant (mais rapido, mais risco)
+--==================================================
+local StealthHolder = Instance.new("Frame")
+StealthHolder.Size = UDim2.new(1, 0, 0, 52)
+StealthHolder.BackgroundTransparency = 1
+StealthHolder.LayoutOrder = 9
+StealthHolder.Parent = SettingPage
+
+local StealthLabel = Instance.new("TextLabel")
+StealthLabel.Size = UDim2.new(1, -50, 0, 20)
+StealthLabel.Position = UDim2.new(0, 0, 0, 2)
+StealthLabel.BackgroundTransparency = 1
+StealthLabel.Text = "Stealth Mode"
+StealthLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+StealthLabel.TextSize = 13
+StealthLabel.TextXAlignment = Enum.TextXAlignment.Left
+StealthLabel.TextYAlignment = Enum.TextYAlignment.Center
+StealthLabel.Font = Enum.Font.GothamBold
+StealthLabel.Parent = StealthHolder
+
+local StealthTitle = Instance.new("TextLabel")
+StealthTitle.Size = UDim2.new(1, -50, 0, 18)
+StealthTitle.Position = UDim2.new(0, 0, 0, 24)
+StealthTitle.BackgroundTransparency = 1
+StealthTitle.Text = "Fly lento + sem restore (anti-kick)"
+StealthTitle.TextColor3 = Color3.fromRGB(180, 180, 180)
+StealthTitle.TextSize = 10
+StealthTitle.TextXAlignment = Enum.TextXAlignment.Left
+StealthTitle.Font = Enum.Font.Gotham
+StealthTitle.Parent = StealthHolder
+
+local StealthCheckButton = Instance.new("TextButton")
+StealthCheckButton.Size = UDim2.new(0, 26, 0, 26)
+StealthCheckButton.Position = UDim2.new(1, -26, 0.5, -13)
+StealthCheckButton.BackgroundColor3 = Color3.fromRGB(105, 90, 190)
+StealthCheckButton.BorderSizePixel = 0
+StealthCheckButton.Text = ""
+StealthCheckButton.AutoButtonColor = false
+StealthCheckButton.Parent = StealthHolder
+
+local StealthCorner = Instance.new("UICorner")
+StealthCorner.CornerRadius = UDim.new(0, 6)
+StealthCorner.Parent = StealthCheckButton
+
+local StealthStroke = Instance.new("UIStroke")
+StealthStroke.Color = Color3.fromRGB(135, 120, 225)
+StealthStroke.Thickness = 1.5
+StealthStroke.Parent = StealthCheckButton
+
+local StealthCheck = Instance.new("TextLabel")
+StealthCheck.Size = UDim2.new(1, 0, 1, 0)
+StealthCheck.BackgroundTransparency = 1
+StealthCheck.Text = "✓"
+StealthCheck.TextColor3 = Color3.fromRGB(255, 255, 255)
+StealthCheck.TextSize = 18
+StealthCheck.Font = Enum.Font.GothamBold
+StealthCheck.Visible = true
+StealthCheck.Parent = StealthCheckButton
+
+local function PaintStealth(On)
+    StealthCheck.Visible = On
+    if On then
+        StealthCheckButton.BackgroundColor3 = Color3.fromRGB(105, 90, 190)
+        StealthStroke.Color = Color3.fromRGB(135, 120, 225)
+    else
+        StealthCheckButton.BackgroundColor3 = Color3.fromRGB(28, 29, 39)
+        StealthStroke.Color = Color3.fromRGB(200, 200, 220)
+    end
+end
+
+local function ToggleStealth()
+    local On = not (_G.ASTHETIC_Stealth ~= false)
+    _G.ASTHETIC_Stealth = On
+    PaintStealth(On)
+    if _G.ASTHETIC_ConfigSystem then
+        _G.ASTHETIC_ConfigSystem.Save()
+    end
+    print("[ASTHETIC] Stealth Mode: " .. (On and "ON" or "OFF"))
+end
+
+StealthCheckButton.MouseButton1Click:Connect(ToggleStealth)
+
+-- sync tardio: ConfigSystem.Load() do Loader roda DEPOIS desse
+-- sync de 0.5s, entao re-sincroniza aos 3s com o valor do arquivo
+task.spawn(function()
+    task.wait(0.5)
+    PaintStealth(_G.ASTHETIC_Stealth ~= false)
+    task.wait(2.5)
+    PaintStealth(_G.ASTHETIC_Stealth ~= false)
+end)
+
+--==================================================
 -- ✅ SYNC ON LOAD (Only Once - After Setting Load)
 --==================================================
 task.spawn(function()

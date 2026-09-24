@@ -1,30 +1,18 @@
 -- ==================================================
--- ASTHETIC HUB | FEATURE | Bypass Anti Cheat V2 (stealth)
+-- ASTHETIC HUB | FEATURE | Bypass Anti Cheat V3 (stealth)
 --
--- POR QUE A V1 TOMAVA KICK (diagnostico senior):
---  1. OldHumanoid:Destroy() no client REPLICA pro servidor.
---     O server via o humanoid sumir + um clone desconhecido
---     aparecer no character = tampering na cara = kick.
---  2. MaxHealth/Health = math.huge REPLICA pro servidor.
---     Qualquer sanity check do jogo (vida acima do maximo
---     possivel) = kick instantaneo.
---  3. Loop a cada 0.1s + Heartbeat escrevendo Health/MaxHealth
---     = spam de replicacao com assinatura obvia de cheat.
---  4. Auto-rodava o replace 2s apos o load: todo mundo tomava
---     kick sozinho, sem apertar nada.
---
--- V2: NADA com valor impossivel chega ao servidor.
---  - Sem Destroy/Clone: humanoid original intacto.
---  - Sem inf: restore limitado ao MaxHealth ORIGINAL.
---  - Sem loop de escrita: so reage a dano (event-driven,
---    com throttle de 0.15s).
---  - Morte real (0 de vida) NAO e bloqueada: deixa morrer
---    limpo p/ respawnar (FarmingManager retoma sozinho).
---    Travar o estado Dead local gerava "zumbi" que o server
---    ja matou = outro motivo classico de kick.
---  - State shield e client-side (nao replica): anti-ragdoll
---    do tapa do guarda.
---  - Void rescue: salva antes do kill-plane.
+-- V2 ainda tomou kick. Endurecimento V3:
+--  1. HealthRestore agora DEFAULT OFF. Qualquer escrita em
+--     Health replica p/ o servidor; se o jogo valida dano
+--     no server, restore = flag. Morte virou evento normal:
+--     morre limpo -> respawna -> FarmingManager retoma
+--     sozinho (hook de respawn ja existe).
+--  2. Camadas independentes via SetFlags: HealthRestore,
+--     StateShield, VoidRescue. Tudo desligavel sem editar.
+--  3. Nomes dos movers? Este arquivo nao cria movers.
+--     (Randomizacao feita nos arquivos de voo.)
+-- Mantido: sem Destroy/Clone, sem inf, sem loop de escrita,
+-- state Dead intacto (zumbi = kick), shield client-side.
 -- ==================================================
 
 local Players = game:GetService("Players")
@@ -34,6 +22,14 @@ local Player = Players.LocalPlayer
 local VOID_Y = -200
 local SAFE_ZONE = Vector3.new(533, 70, -366)
 local RESTORE_COOLDOWN = 0.15
+
+-- Defaults seguros: nada que escreva propriedade replicada
+-- com valor contestavel liga sozinho.
+local Flags = {
+    HealthRestore = false,
+    StateShield = true,
+    VoidRescue = true,
+}
 
 local Enabled = false
 local HealthConn = nil
@@ -56,8 +52,6 @@ local function GetHum()
     return Hum, Root
 end
 
--- Shield client-side (nao replica): segura o ragdoll do guard
--- sem tocar em nada que o servidor valide.
 local function ApplyStateShield(Hum)
     if not Hum then return end
     pcall(function()
@@ -65,7 +59,6 @@ local function ApplyStateShield(Hum)
         Hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
         Hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
     end)
-    -- NOTA: estado Dead propositalmente INTACTO (ver cabecalho).
 end
 
 local function RemoveStateShield(Hum)
@@ -77,15 +70,12 @@ local function RemoveStateShield(Hum)
     end)
 end
 
--- ==================================================
--- RESTORE CAPPED: so cobre DANO, nunca passa do max
--- original. Cura do jogo continua funcionando (sobe o
--- baseline em vez de ser sobrescrita).
--- ==================================================
+-- So executa se HealthRestore explicitamente ligado.
+-- Nunca passa do MaxHealth original.
 local function OnHealthChanged(NewHealth)
-    if not Enabled then return end
+    if not Enabled or not Flags.HealthRestore then return end
     local Hum = GetHum()
-    if not Hum or Hum.Health <= 0 then return end -- morte real: respawn limpo
+    if not Hum or Hum.Health <= 0 then return end
     if type(NewHealth) ~= "number" then return end
 
     if LastGoodHealth and NewHealth < LastGoodHealth then
@@ -96,7 +86,7 @@ local function OnHealthChanged(NewHealth)
             pcall(function()
                 Hum.Health = Target
             end)
-            return -- nao atualiza baseline: proximo dano compara com o valor pre-dano
+            return
         end
         return
     end
@@ -110,30 +100,30 @@ local function HookCharacter(Char)
 
     local Hum = Char:WaitForChild("Humanoid", 10)
     if not Hum then return end
-    -- guarda o max ORIGINAL e nunca escreve nele (escrever = kick)
-    OrigMaxHealth = Hum.MaxHealth
+    OrigMaxHealth = Hum.MaxHealth -- so leitura, nunca escrita
     LastGoodHealth = Hum.Health
-    ApplyStateShield(Hum)
+    if Flags.StateShield then
+        ApplyStateShield(Hum)
+    end
     HealthConn = Hum.HealthChanged:Connect(OnHealthChanged)
 end
 
--- ==================================================
--- VOID RESCUE (0.25s, barato)
--- ==================================================
 local function StartWatch()
     if WatchThread then return end
     WatchThread = task.spawn(function()
         while Enabled do
             task.wait(0.25)
             if not Enabled then break end
-            local _, Root = GetHum()
-            if Root and Root.Position.Y < VOID_Y then
-                pcall(function()
-                    Root.CFrame = CFrame.new(SAFE_ZONE)
-                    Root.AssemblyLinearVelocity = Vector3.zero
-                    Root.AssemblyAngularVelocity = Vector3.zero
-                end)
-                print("[Bypass] Void rescue -> Safe Zone")
+            if Flags.VoidRescue then
+                local _, Root = GetHum()
+                if Root and Root.Position.Y < VOID_Y then
+                    pcall(function()
+                        Root.CFrame = CFrame.new(SAFE_ZONE)
+                        Root.AssemblyLinearVelocity = Vector3.zero
+                        Root.AssemblyAngularVelocity = Vector3.zero
+                    end)
+                    print("[Bypass] Void rescue -> Safe Zone")
+                end
             end
         end
         WatchThread = nil
@@ -141,7 +131,7 @@ local function StartWatch()
 end
 
 -- ==================================================
--- ENABLE / DISABLE
+-- ENABLE / DISABLE / FLAGS
 -- ==================================================
 local function Enable()
     if Enabled then return end
@@ -160,7 +150,9 @@ local function Enable()
         end)
     end
     StartWatch()
-    print("[Bypass] Shield ON (stealth, sem replace, sem inf)")
+    print("[Bypass] Shield ON (restore=" .. tostring(Flags.HealthRestore)
+        .. " shield=" .. tostring(Flags.StateShield)
+        .. " void=" .. tostring(Flags.VoidRescue) .. ")")
 end
 
 local function Disable()
@@ -173,6 +165,34 @@ local function Disable()
     print("[Bypass] Shield OFF")
 end
 
+-- Uso no console do executor:
+--   _G.ASTHETIC_BypassAntiCheat.SetFlags({HealthRestore = true})
+local function SetFlags(NewFlags)
+    if type(NewFlags) ~= "table" then return Flags end
+    for K, V in pairs(NewFlags) do
+        if Flags[K] ~= nil and type(V) == "boolean" then
+            Flags[K] = V
+        end
+    end
+    -- aplica shield imediatamente se ja ligado
+    local Hum = GetHum()
+    if Enabled and Hum then
+        if Flags.StateShield then ApplyStateShield(Hum) else RemoveStateShield(Hum) end
+    end
+    print("[Bypass] Flags: restore=" .. tostring(Flags.HealthRestore)
+        .. " shield=" .. tostring(Flags.StateShield)
+        .. " void=" .. tostring(Flags.VoidRescue))
+    return GetFlags()
+end
+
+local function GetFlags()
+    return {
+        HealthRestore = Flags.HealthRestore,
+        StateShield = Flags.StateShield,
+        VoidRescue = Flags.VoidRescue,
+    }
+end
+
 -- ==================================================
 -- EXPORT
 -- ==================================================
@@ -180,11 +200,10 @@ _G.ASTHETIC_BypassAntiCheat = {
     Enable = Enable,
     Disable = Disable,
     IsEnabled = function() return Enabled end,
+    SetFlags = SetFlags,
+    GetFlags = GetFlags,
 }
 
--- Auto-liga o shield passivo (seguro: nenhuma escrita
--- replicada com valor impossivel). O replace assassino
--- da V1 foi removido — nao existe mais auto-kick no load.
 task.spawn(function()
     task.wait(2)
     if not Enabled then
@@ -192,4 +211,4 @@ task.spawn(function()
     end
 end)
 
-print("✅ BypassAntiCheat V2 Loaded (stealth: capped restore + state shield + void rescue)")
+print("✅ BypassAntiCheat V3 Loaded (stealth, restore OFF por padrao)")
