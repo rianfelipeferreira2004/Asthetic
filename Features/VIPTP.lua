@@ -70,6 +70,11 @@ local AUTO_FLY_BACK_MAX_ATTEMPTS = 999
 local STABLE_Y_REQUIRED = 3
 local STABLE_Y_THRESHOLD = 0.1
 
+-- ✅ Anti-monstro: re-dispara o ForestStrike enquanto carrega o ovo.
+-- Antes o strike ia UMA vez só e o guarda acordava no meio do farm.
+local STRIKE_REFIRE_INTERVAL = 2.5
+local GUARD_FLEE_DISTANCE = 22
+
 local LOCK_POSITION = Vector3.new(
     607.6259155273438,
     70.57420349121094,
@@ -124,6 +129,10 @@ local AutoFlyBackTargetUid = nil
 local AutoFlyBackCheckStarted = false
 local FlyToSafeZoneActive = false
 local FlyToSafeZoneRequested = false  -- ✅ ថ្មី
+
+-- ✅ Anti-monstro state
+local LastStrikeTime = 0
+local StrikeLoopThread = nil
 
 -- ==================================================
 -- FORWARD DECLARATIONS
@@ -571,6 +580,7 @@ end
 local function FireForestStrike()
     if RemotesFired then return end
     RemotesFired = true
+    LastStrikeTime = tick()
 
     EnableRagdollBypass()
 
@@ -590,6 +600,70 @@ local function FireForestStrike()
     end)
 
     print("[VIPTP] ForestStrike Fired")
+end
+
+-- ==================================================
+-- ✅ ANTI-MONSTRO: re-strike contínuo + guarda perto
+-- O guarda (GuardPatrol) acorda depois do primeiro strike.
+-- Re-disparar a cada 2.5s mantém ele preso no LOCK_POSITION
+-- durante todo o carry até a Safe Zone.
+-- ==================================================
+local function FindClosestGuardDist()
+    local _, Root = GetHumanoid()
+    if not Root then return nil end
+    local Best = nil
+    pcall(function()
+        for _, d in ipairs(workspace:GetDescendants()) do
+            if d:IsA("Model") and string.find(string.lower(d.Name), "guard") then
+                local pos = GetPosition(d)
+                if pos then
+                    local dist = (pos - Root.Position).Magnitude
+                    if not Best or dist < Best then Best = dist end
+                end
+            end
+        end
+    end)
+    return Best
+end
+
+local function ReFireForestStrike()
+    if not Running or not ForestStrike then return end
+    if tick() - LastStrikeTime < STRIKE_REFIRE_INTERVAL then return end
+    LastStrikeTime = tick()
+    pcall(function()
+        ForestStrike:FireServer({
+            EggUid = FirstEggUid or TARGET_UID,
+            GuardCFrame = CFrame.new(LOCK_POSITION)
+        })
+    end)
+end
+
+local function StartStrikeLoop()
+    if StrikeLoopThread then
+        pcall(function() task.cancel(StrikeLoopThread) end)
+        StrikeLoopThread = nil
+    end
+    StrikeLoopThread = task.spawn(function()
+        while Running do
+            task.wait(0.5)
+            if not Running then break end
+            -- só re-dispara depois do primeiro strike (guarda já agrou)
+            if RemotesFired then
+                local gd = FindClosestGuardDist()
+                if gd and gd < GUARD_FLEE_DISTANCE then
+                    LastStrikeTime = 0 -- guarda colado: strike imediato
+                end
+                ReFireForestStrike()
+            end
+        end
+    end)
+end
+
+local function StopStrikeLoop()
+    if StrikeLoopThread then
+        pcall(function() task.cancel(StrikeLoopThread) end)
+        StrikeLoopThread = nil
+    end
 end
 
 -- ==================================================
@@ -638,6 +712,8 @@ function AutoStop()
     FlyToSafeZoneRequested = false
 
     print("[VIPTP] Auto Stop")
+
+    StopStrikeLoop()
 
     if _G.YOKUDO_FarmingManager and _G.YOKUDO_FarmingManager.OnVIPTPComplete then
         task.spawn(function()
@@ -1046,6 +1122,7 @@ local function StartProcess()
     CurrentStep = "fly_first"
 
     StartActiveHeartbeat()
+    StartStrikeLoop()
 
     print("[VIPTP] FlyTP to First Egg (Shot TP)")
     FlyTP(EggPos, FLY_SPEED, true, false, function()
@@ -1084,6 +1161,7 @@ local function FullReset()
     CleanupMovers()
     DisableRagdollBypass()
     StopActiveHeartbeat()
+    StopStrikeLoop()
     RestoreStats()
 
     print("[VIPTP] Full Reset")

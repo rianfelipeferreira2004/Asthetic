@@ -104,7 +104,9 @@ end
 local RARITY_PRIORITY = {
     Divine = 1,
     Eternal = 2,
-    Secret = 3
+    Secret = 3,
+    Mythical = 4,
+    Cosmic = 5
 }
 
 local function SortEggs(EggList)

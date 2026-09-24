@@ -52,15 +52,17 @@ RarityTitle.ZIndex = 101
 RarityTitle.Parent = RarityHolder
 
 -- Selected Rarities
-local SelectedRarities = { Secret = true, Eternal = true, Divine = true }
+local SelectedRarities = { Secret = true, Eternal = true, Divine = true, Mythical = true, Cosmic = true }
 
 local function GetSelectedText()
     local List = {}
     if SelectedRarities.Secret then table.insert(List, "Secret") end
     if SelectedRarities.Eternal then table.insert(List, "Eternal") end
     if SelectedRarities.Divine then table.insert(List, "Divine") end
+    if SelectedRarities.Mythical then table.insert(List, "Mythical") end
+    if SelectedRarities.Cosmic then table.insert(List, "Cosmic") end
     if #List == 0 then return "None" end
-    if #List == 3 then return "All" end
+    if #List == 5 then return "All" end
     return table.concat(List, ", ")
 end
 
@@ -90,7 +92,7 @@ DdStroke.Parent = DropdownBtn
 
 -- Dropdown List
 local DropdownList = Instance.new("Frame")
-DropdownList.Size = UDim2.new(0, 120, 0, 80)
+DropdownList.Size = UDim2.new(0, 120, 0, 126)
 DropdownList.Position = UDim2.new(1, -120, 1, 2)
 DropdownList.BackgroundColor3 = Color3.fromRGB(25, 26, 38)
 DropdownList.BorderSizePixel = 0
@@ -169,6 +171,8 @@ local function CreateDropdownOption(Name, Order)
             if SelectedRarities.Secret then table.insert(List, "Secret") end
             if SelectedRarities.Eternal then table.insert(List, "Eternal") end
             if SelectedRarities.Divine then table.insert(List, "Divine") end
+            if SelectedRarities.Mythical then table.insert(List, "Mythical") end
+            if SelectedRarities.Cosmic then table.insert(List, "Cosmic") end
             _G.YOKUDO_EggCheckPremium.SetRarities(List)
         end
 
@@ -178,6 +182,8 @@ local function CreateDropdownOption(Name, Order)
             if SelectedRarities.Secret then table.insert(List, "Secret") end
             if SelectedRarities.Eternal then table.insert(List, "Eternal") end
             if SelectedRarities.Divine then table.insert(List, "Divine") end
+            if SelectedRarities.Mythical then table.insert(List, "Mythical") end
+            if SelectedRarities.Cosmic then table.insert(List, "Cosmic") end
             _G.YOKUDO_FarmingManager.SetRarities(List)
         end
 
@@ -202,6 +208,8 @@ end
 CreateDropdownOption("Secret", 1)
 CreateDropdownOption("Eternal", 2)
 CreateDropdownOption("Divine", 3)
+CreateDropdownOption("Mythical", 4)
+CreateDropdownOption("Cosmic", 5)
 
 DropdownBtn.MouseButton1Click:Connect(function()
     DropdownList.Visible = not DropdownList.Visible
@@ -292,6 +300,8 @@ local function ToggleFarm()
             if SelectedRarities.Secret then table.insert(List, "Secret") end
             if SelectedRarities.Eternal then table.insert(List, "Eternal") end
             if SelectedRarities.Divine then table.insert(List, "Divine") end
+            if SelectedRarities.Mythical then table.insert(List, "Mythical") end
+            if SelectedRarities.Cosmic then table.insert(List, "Cosmic") end
             _G.YOKUDO_EggCheckPremium.SetRarities(List)
         end
 
@@ -301,6 +311,8 @@ local function ToggleFarm()
             if SelectedRarities.Secret then table.insert(List, "Secret") end
             if SelectedRarities.Eternal then table.insert(List, "Eternal") end
             if SelectedRarities.Divine then table.insert(List, "Divine") end
+            if SelectedRarities.Mythical then table.insert(List, "Mythical") end
+            if SelectedRarities.Cosmic then table.insert(List, "Cosmic") end
             _G.YOKUDO_FarmingManager.SetRarities(List)
         end
 

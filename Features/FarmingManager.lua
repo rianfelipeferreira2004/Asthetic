@@ -45,7 +45,7 @@ local METHOD = "InstantTeleport"
 -- ==================================================
 -- EGG CHECK PREMIUM (បញ្ចូលក្នុង FarmingManager)
 -- ==================================================
-local SelectedRarities = { Divine = true, Eternal = true, Secret = true }
+local SelectedRarities = { Divine = true, Eternal = true, Secret = true, Mythical = true, Cosmic = true }
 
 local MeshIdMap = {}
 local MeshIdMapBuilt = false
@@ -53,7 +53,9 @@ local MeshIdMapBuilt = false
 local RARITY_PRIORITY = {
     Divine = 1,
     Eternal = 2,
-    Secret = 3
+    Secret = 3,
+    Mythical = 4,
+    Cosmic = 5
 }
 
 local function BuildMeshIdMap()
