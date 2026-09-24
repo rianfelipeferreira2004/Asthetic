@@ -381,19 +381,31 @@ EggListLayout.Padding = UDim.new(0, 4)
 EggListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 EggListLayout.Parent = EggScrollFrame
 
-workspace.AreaEggSlotsClient.ChildAdded:Connect(function()
-    task.wait(0.2)
-    if CheckEggEnabled then
-        RefreshEggList()
-    end
-end)
+local EggContainer = workspace:FindFirstChild("AreaEggSlotsClient")
+if not EggContainer then
+    pcall(function()
+        EggContainer = workspace:WaitForChild("AreaEggSlotsClient", 10)
+    end)
+end
+if not EggContainer then
+    warn("[ASTHETIC][AutoFarming] AreaEggSlotsClient não encontrado! A lista só atualiza a cada 3s.")
+end
 
-workspace.AreaEggSlotsClient.ChildRemoved:Connect(function()
-    task.wait(0.2)
-    if CheckEggEnabled then
-        RefreshEggList()
-    end
-end)
+if EggContainer then
+    EggContainer.ChildAdded:Connect(function()
+        task.wait(0.2)
+        if CheckEggEnabled then
+            RefreshEggList()
+        end
+    end)
+
+    EggContainer.ChildRemoved:Connect(function()
+        task.wait(0.2)
+        if CheckEggEnabled then
+            RefreshEggList()
+        end
+    end)
+end
 
 task.spawn(function()
     while task.wait(3) do

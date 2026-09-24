@@ -18,7 +18,15 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Player = Players.LocalPlayer
-local Container = workspace:WaitForChild("AreaEggSlotsClient")
+local Container = workspace:FindFirstChild("AreaEggSlotsClient")
+if not Container then
+    pcall(function()
+        Container = workspace:WaitForChild("AreaEggSlotsClient", 15)
+    end)
+end
+if not Container then
+    warn("[ASTHETIC][VIPTP] AreaEggSlotsClient não encontrado no load! Tentando de novo a cada uso.")
+end
 
 -- ==================================================
 -- REMOTES
@@ -360,6 +368,9 @@ end
 -- ==================================================
 local function SearchFirstEggs()
     FirstEggList = {}
+    if not Container then
+        Container = workspace:FindFirstChild("AreaEggSlotsClient")
+    end
     if not Container then return end
 
     for _, Slot in ipairs(Container:GetChildren()) do

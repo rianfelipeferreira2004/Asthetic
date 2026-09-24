@@ -8,7 +8,24 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Player = Players.LocalPlayer
-local Container = workspace:WaitForChild("AreaEggSlotsClient")
+
+-- espera com timeout: sem isso, se o jogo renomear um path,
+-- o WaitForChild infinito TRAVA o carregamento do hub inteiro aqui
+local function SafeWaitChild(parent, name, timeout)
+    if not parent then return nil end
+    local found = parent:FindFirstChild(name)
+    if found then return found end
+    local ok, res = pcall(function()
+        return parent:WaitForChild(name, timeout or 10)
+    end)
+    if ok and res then return res end
+    return parent:FindFirstChild(name)
+end
+
+local Container = SafeWaitChild(workspace, "AreaEggSlotsClient", 15)
+if not Container then
+    warn("[ASTHETIC][AutoFarm] AreaEggSlotsClient não encontrado! Start Check Egg vai listar vazio.")
+end
 
 --==================================================
 -- VARIABLES
@@ -20,9 +37,15 @@ local EggList = {}
 --==================================================
 -- ASSETS
 --==================================================
-local Assets = ReplicatedStorage:WaitForChild("Data"):WaitForChild("Assets")
-local Configs = Assets:WaitForChild("Configs")
-local EggModels = ReplicatedStorage:WaitForChild("Assets"):WaitForChild("Models"):WaitForChild("Eggs")
+local Assets = SafeWaitChild(ReplicatedStorage, "Data", 10)
+if Assets then Assets = SafeWaitChild(Assets, "Assets", 10) end
+local Configs = Assets and SafeWaitChild(Assets, "Configs", 10) or nil
+local EggAssets = SafeWaitChild(ReplicatedStorage, "Assets", 10)
+local EggModels = EggAssets and SafeWaitChild(EggAssets, "Models", 10) or nil
+if EggModels then EggModels = SafeWaitChild(EggModels, "Eggs", 10) end
+if not Configs or not EggModels then
+    warn("[ASTHETIC][AutoFarm] Configs/Eggs não encontrados! Reconhecimento por MeshId desativado (ovos aparecem como Unknown).")
+end
 
 --==================================================
 -- MESHID MAP
@@ -30,6 +53,7 @@ local EggModels = ReplicatedStorage:WaitForChild("Assets"):WaitForChild("Models"
 local MeshIdToCategory = {}
 
 local function BuildMeshIdMap()
+    if not Configs or not EggModels then return end
     for _, Config in ipairs(Configs:GetChildren()) do
         local Success, Module = pcall(function()
             return require(Config)
@@ -57,15 +81,15 @@ BuildMeshIdMap()
 -- GET PET DATA
 --==================================================
 local function GetPetData(AssetCategory)
-    local Config = Configs:FindFirstChild(AssetCategory)
-    if not Config then return nil end
-    
     local Data = {
         Name = AssetCategory,
         DisplayName = AssetCategory,
         EarningRate = 0,
         Icon = nil
     }
+    if not Configs then return Data end
+    local Config = Configs:FindFirstChild(AssetCategory)
+    if not Config then return Data end
     
     local Success, Module = pcall(function()
         return require(Config)
@@ -144,17 +168,26 @@ end
 --==================================================
 local function ScanEggs()
     EggList = {}
-    
-    for _, child in ipairs(Container:GetChildren()) do
+
+    -- container pode ter sumido/renomeado: tenta resolver de novo
+    local C = Container or workspace:FindFirstChild("AreaEggSlotsClient")
+    if not C then
+        warn("[ASTHETIC][AutoFarm] ScanEggs: sem container!")
+        return EggList
+    end
+    Container = C
+
+    local unknown = 0
+    for _, child in ipairs(C:GetChildren()) do
         if child:IsA("Model") then
-            local AssetCategory = FindAssetCategory(child)
-            if AssetCategory then
+            local ok, AssetCategory = pcall(FindAssetCategory, child)
+            if ok and AssetCategory then
                 local Data = GetPetData(AssetCategory)
                 if Data then
                     local Scale = child:GetAttribute("AssetScale") or 1
                     local Mutations = child:GetAttribute("Mutations") or {}
                     local RealRate = CalculateRatePerSecond(Data.EarningRate, Scale, Mutations)
-                    
+
                     table.insert(EggList, {
                         Id = child.Name,
                         Category = AssetCategory,
@@ -164,14 +197,30 @@ local function ScanEggs()
                         Model = child
                     })
                 end
+            else
+                -- ✅ ovo não reconhecido (jogo mudou o modelo): lista mesmo assim
+                -- como Unknown pra teleporte manual continuar funcionando
+                unknown = unknown + 1
+                table.insert(EggList, {
+                    Id = child.Name,
+                    Category = nil,
+                    DisplayName = "Unknown (" .. child.Name .. ")",
+                    Icon = nil,
+                    EarningRate = 0,
+                    Model = child
+                })
             end
         end
     end
-    
+
     table.sort(EggList, function(a, b)
         return a.EarningRate > b.EarningRate
     end)
-    
+
+    if unknown > 0 then
+        warn("[ASTHETIC][AutoFarm] " .. unknown .. " ovo(s) não reconhecidos (Unknown). O jogo pode ter atualizado os modelos.")
+    end
+
     return EggList
 end
 
