@@ -45,18 +45,29 @@ local METHOD = "InstantTeleport"
 -- ==================================================
 -- EGG CHECK PREMIUM (បញ្ចូលក្នុង FarmingManager)
 -- ==================================================
-local SelectedRarities = { Divine = true, Eternal = true, Secret = true, Mythical = true, Cosmic = true }
+local SelectedRarities = { divine = true, eternal = true, secret = true, mythical = true, cosmic = true }
 
 local MeshIdMap = {}
 local MeshIdMapBuilt = false
 
 local RARITY_PRIORITY = {
-    Divine = 1,
-    Eternal = 2,
-    Secret = 3,
-    Mythical = 4,
-    Cosmic = 5
+    divine = 1,
+    eternal = 2,
+    secret = 3,
+    mythical = 4,
+    cosmic = 5
 }
+
+-- normaliza "Divine"/"DIVINE"/"divine" para a mesma chave
+local function norm(s)
+    if type(s) ~= "string" then return nil end
+    return string.lower(s)
+end
+
+-- diagnóstico do último scan (FindBestEgg atualiza a cada chamada)
+local LastScan = { total = 0, categorized = 0, matched = 0, note = "" }
+local LastFoundName = "none"
+local LastNoEggLog = 0
 
 local function BuildMeshIdMap()
     if MeshIdMapBuilt then return end
@@ -132,8 +143,8 @@ end
 
 local function SortEggs(EggList)
     table.sort(EggList, function(a, b)
-        local Pa = RARITY_PRIORITY[a.Rarity] or 999
-        local Pb = RARITY_PRIORITY[b.Rarity] or 999
+        local Pa = RARITY_PRIORITY[norm(a.Rarity)] or 999
+        local Pb = RARITY_PRIORITY[norm(b.Rarity)] or 999
         if Pa ~= Pb then return Pa < Pb end
         return a.EarningRate > b.EarningRate
     end)
@@ -141,16 +152,23 @@ end
 
 local function FindBestEgg()
     local Container = workspace:FindFirstChild("AreaEggSlotsClient")
-    if not Container then return nil end
+    if not Container then
+        LastScan = { total = 0, categorized = 0, matched = 0, note = "sem container AreaEggSlotsClient" }
+        return nil
+    end
 
     local EggList = {}
+    local total, categorized = 0, 0
 
     for _, Slot in ipairs(Container:GetChildren()) do
         if Slot:IsA("Model") then
+            total = total + 1
             local Category = FindAssetCategory(Slot)
             if Category then
+                categorized = categorized + 1
                 local Data = GetPetData(Category)
-                if Data and SelectedRarities[Data.Rarity] then
+                local rn = Data and norm(Data.Rarity) or nil
+                if Data and rn and SelectedRarities[rn] then
                     table.insert(EggList, {
                         Slot = Slot,
                         Uid = Slot.Name,
@@ -163,17 +181,34 @@ local function FindBestEgg()
         end
     end
 
+    LastScan = { total = total, categorized = categorized, matched = #EggList, note = "" }
+
     if #EggList == 0 then return nil end
     SortEggs(EggList)
+    LastFoundName = EggList[1].DisplayName .. " (" .. tostring(EggList[1].Rarity) .. ")"
     return EggList[1]
 end
 
 local function SetRarities(List)
     SelectedRarities = {}
     for _, r in ipairs(List) do
-        SelectedRarities[r] = true
+        local rn = norm(r)
+        if rn then SelectedRarities[rn] = true end
     end
     print("[FarmingManager] Rarities: " .. table.concat(List, ", "))
+end
+
+-- loga a cada 5s o motivo de não sair da esteira (sem spam)
+local function LogNoEgg(prefix)
+    if tick() - LastNoEggLog < 5 then return end
+    LastNoEggLog = tick()
+    print(prefix .. " sem ovo p/ farm | slots=" .. tostring(LastScan.total)
+        .. " reconhecidos=" .. tostring(LastScan.categorized)
+        .. " na-raridade=" .. tostring(LastScan.matched)
+        .. (LastScan.note ~= "" and (" (" .. LastScan.note .. ")") or ""))
+    if LastScan.total > 0 and LastScan.matched == 0 then
+        print("[FarmingManager] DICA: rode _G.ASTHETIC_FarmingManager.DebugScan() no console e me mande o resultado")
+    end
 end
 
 -- ==================================================
@@ -436,6 +471,7 @@ local function StartVIPTP(EggUid)
     print("  - Target UID: " .. tostring(EggUid))
 
     WaitingForVIPTP = true
+    CurrentState = "VIPTP_RUN"
     _G.ASTHETIC_VIPTP.SetTargetId(EggUid)
     _G.ASTHETIC_VIPTP.Enable()
 end
@@ -480,6 +516,7 @@ end
 -- ==================================================
 local function WaitForDay()
     print("[FarmingManager] Waiting for Day...")
+    CurrentState = "WAIT_DAY"
 
     while FarmingEnabled do
         local Phase = GetPhase()
@@ -501,6 +538,7 @@ end
 -- ==================================================
 local function NightLoop()
     print("[FarmingManager] NightLoop Started (0.05s)")
+    CurrentState = "NIGHT_SCAN"
 
     while FarmingEnabled do
         local Phase = GetPhase()
@@ -515,6 +553,7 @@ local function NightLoop()
 
         if BestEgg then
             print("[FarmingManager] ✅ Night + Egg Spawn: " .. BestEgg.DisplayName)
+            CurrentState = "NIGHT_EGG_FOUND"
 
             PendingEggUid = BestEgg.Uid
 
@@ -543,6 +582,8 @@ local function NightLoop()
 
             return
         else
+            CurrentState = "NIGHT_SCAN"
+            LogNoEgg("[FarmingManager] Night:")
             if not AFKStarted then
                 if _G.ASTHETIC_AFKSystem and not _G.ASTHETIC_AFKSystem.IsEnabled() then
                     _G.ASTHETIC_AFKSystem.Enable()
@@ -561,6 +602,7 @@ end
 -- ==================================================
 local function DayLoop()
     print("[FarmingManager] DayLoop Started (0.5s)")
+    CurrentState = "DAY_SCAN"
 
     while FarmingEnabled do
         local Phase = GetPhase()
@@ -575,6 +617,7 @@ local function DayLoop()
 
         if BestEgg then
             print("[FarmingManager] ✅ Day + Egg: " .. BestEgg.DisplayName)
+            CurrentState = "DAY_EGG_FOUND"
 
             StopAll()
             task.wait(0.5)
@@ -584,11 +627,13 @@ local function DayLoop()
 
             StartVIPTP(BestEgg.Uid)
 
-            -- រង់ចាំ VIPTP ចប់ (Callback នឹងហៅ OnVIPTPComplete)
+            -- รង់ចាំ VIPTP ចប់ (Callback នឹងហៅ OnVIPTPComplete)
             while WaitingForVIPTP and FarmingEnabled do
                 task.wait(0.5)
             end
         else
+            CurrentState = "DAY_SCAN"
+            LogNoEgg("[FarmingManager] Day:")
             if _G.ASTHETIC_AFKSystem and not _G.ASTHETIC_AFKSystem.IsEnabled() then
                 _G.ASTHETIC_AFKSystem.Enable()
                 AFKStarted = true
@@ -612,10 +657,18 @@ local function MainLoop()
 
         print("[FarmingManager] Phase: " .. Phase)
 
+        -- pcall: um erro num scan nunca pode matar o manager em silêncio
+        -- (antes isso travava o char na esteira sem nenhum aviso)
+        local ok, err
         if Phase == "Day" then
-            DayLoop()
+            ok, err = pcall(DayLoop)
         else
-            NightLoop()
+            ok, err = pcall(NightLoop)
+        end
+        if not ok then
+            CurrentState = "LOOP_ERROR"
+            warn("[FarmingManager] ❌ Loop error (tentando de novo em 2s): " .. tostring(err))
+            task.wait(2)
         end
 
         task.wait(0.1)
@@ -678,6 +731,54 @@ _G.ASTHETIC_FarmingManager = {
     GetState = function() return CurrentState end,
     GetPhase = function() return CurrentPhase end,
     FindBestEgg = FindBestEgg,
+    -- ✅ Diagnóstico: rode no console do executor e mande o resultado
+    GetDebug = function()
+        return {
+            State = CurrentState,
+            Phase = CurrentPhase,
+            Enabled = FarmingEnabled,
+            ScanTotal = LastScan.total,
+            ScanCategorized = LastScan.categorized,
+            ScanMatched = LastScan.matched,
+            ScanNote = LastScan.note,
+            LastFound = LastFoundName,
+        }
+    end,
+    DebugScan = function()
+        local Container = workspace:FindFirstChild("AreaEggSlotsClient")
+        if not Container then
+            print("[FarmingManager][Debug] SEM container AreaEggSlotsClient no workspace!")
+            return nil
+        end
+        local kids = Container:GetChildren()
+        print("[FarmingManager][Debug] slots no container: " .. #kids)
+        local shown = 0
+        for _, Slot in ipairs(kids) do
+            if shown >= 10 then break end
+            if Slot:IsA("Model") then
+                shown = shown + 1
+                local Category = FindAssetCategory(Slot)
+                local info = "slot=" .. Slot.Name .. " categoria=" .. tostring(Category)
+                if Category then
+                    local Data = GetPetData(Category)
+                    if Data then
+                        info = info .. " raridade=" .. tostring(Data.Rarity)
+                            .. " nome=" .. tostring(Data.DisplayName)
+                            .. " $/=" .. tostring(Data.EarningRate)
+                            .. " passa-filtro=" .. tostring(SelectedRarities[norm(Data.Rarity)] == true)
+                    else
+                        info = info .. " (sem dados no config!)"
+                    end
+                else
+                    info = info .. " (MeshId desconhecido!)"
+                end
+                print("[FarmingManager][Debug] " .. info)
+            end
+        end
+        local best = FindBestEgg()
+        print("[FarmingManager][Debug] melhor ovo: " .. (best and (best.DisplayName .. " " .. best.Uid) or "NENHUM"))
+        return best
+    end,
     NIGHT_CHECK_INTERVAL = NIGHT_CHECK_INTERVAL,
     DAY_CHECK_INTERVAL = DAY_CHECK_INTERVAL,
     FLY_SPEED = FLY_SPEED,
