@@ -619,7 +619,7 @@ local function StartStrikeLoop()
     end
     StrikeLoopThread = task.spawn(function()
         while Running do
-            task.wait(0.5)
+            task.wait(1.5) -- throttle: antes era 0.5s com GetDescendants() no workspace INTEIRO (lag)
             if not Running then break end
             -- só re-dispara depois do primeiro strike (guarda já agrou)
             if RemotesFired then

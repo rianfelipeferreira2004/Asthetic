@@ -219,6 +219,16 @@ local function JumpOutTreadmill(TreadmillPos, Callback)
         Hum.Sit = false
     end)
 
+    -- nudge fisico: Jump sozinho nao quebra seat/weld da esteira.
+    -- Empurra o char 6 studs p/ frente + 3 p/ cima antes dos jumps.
+    pcall(function()
+        local _, Root0 = GetHumanoid()
+        if Root0 then
+            Root0.CFrame = Root0.CFrame + Vector3.new(0, 3, 0) + Root0.CFrame.LookVector * 6
+            Root0.AssemblyLinearVelocity = Vector3.new(0, 25, 0)
+        end
+    end)
+
     task.spawn(function()
         local Attempts = 0
         while Attempts < JUMP_MAX_ATTEMPTS do

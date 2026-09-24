@@ -656,7 +656,7 @@ local function StartStrikeLoop()
     end
     StrikeLoopThread = task.spawn(function()
         while Running do
-            task.wait(0.5)
+            task.wait(1.5) -- throttle: antes era 0.5s com GetDescendants() no workspace INTEIRO (lag)
             if not Running then break end
             -- só re-dispara depois do primeiro strike (guarda já agrou)
             if RemotesFired then
@@ -749,6 +749,7 @@ function FlyToSafeZone()
 
     FlyTP(SAFE_ZONE, RETURN_SPEED, false, true, function()
         FlyToSafeZoneActive = false
+        FlyToSafeZoneRequested = false -- libera proximas idas (senao a 2a chamada morre no early-return)
         TargetCollected = true
         -- ✅ រង់ចាំ 0.5s រួច AutoStop
         task.spawn(function()
@@ -787,13 +788,23 @@ function StartAutoFlyBackTask()
     FlyTP(EggPos, FLY_SPEED, true, false, function()
         print("[VIPTP] Auto Fly Back: Locked at Egg")
 
-        -- ✅ រង់ចាំ Y ថេរ សិន រួច Save Y
+        -- ✅ ราง់ចាំ Y ថេរ សិន រួច Save Y (com timeout: Y com bounce nunca estabiliza)
         task.spawn(function()
             local LastY = nil
             local StableCount = 0
+            local StableStart = tick()
+            local STABLE_TIMEOUT = 12
 
             while AutoFlyBackActive and Running do
                 task.wait(0.05)
+
+                if tick() - StableStart > STABLE_TIMEOUT then
+                    local EggNow = workspace:FindFirstChild(TARGET_UID)
+                    local FallbackY = EggNow and GetPosition(EggNow)
+                    SavedEggY = FallbackY and FallbackY.Y or (SavedEggY or LastY)
+                    print("[VIPTP] Auto Fly Back: Y timeout, forcando collect com Y = " .. tostring(SavedEggY))
+                    break
+                end
 
                 local EggInWS2 = workspace:FindFirstChild(TARGET_UID)
                 if not EggInWS2 then
@@ -827,9 +838,22 @@ function StartAutoFlyBackTask()
 
             print("[VIPTP] Auto Fly Back: Starting Auto Collect...")
 
-            -- ✅ Auto Collect ជាប់ៗ រហូតដល់ Y ឡើង
+            -- ✅ Auto Collect com teto: sem isso, se o servidor ignorar o
+            -- remote (cooldown/validacao), spamma o remote PRA SEMPRE = kick.
+            local CollectTries = 0
+            local COLLECT_MAX_TRIES = 600 -- ~30s a 0.05s
             while AutoFlyBackActive and Running do
                 task.wait(COLLECT_INTERVAL_AUTO_FLY_BACK)
+                CollectTries = CollectTries + 1
+
+                if CollectTries > COLLECT_MAX_TRIES then
+                    print("[VIPTP] Auto Fly Back: collect esgotado (" .. COLLECT_MAX_TRIES .. "), desistindo do ovo")
+                    AutoFlyBackActive = false
+                    if Running then
+                        FlyToSafeZone()
+                    end
+                    return
+                end
 
                 local EggInWS3 = workspace:FindFirstChild(TARGET_UID)
                 if not EggInWS3 then

@@ -1,11 +1,37 @@
 -- ==================================================
--- ASTHETIC HUB | FEATURE | Farming Manager (NEW)
--- បញ្ចូល Egg Check Logic ពី EggCheckPremium
--- គ្រប់គ្រង Day/Night
--- ហៅ AFKSystem ពេលអត់ឃើញ Egg
--- ហៅ VIPTP ពេលឃើញ Egg + Day
--- Night Check: 0.05s | Day Check: 0.5s
--- ✅ Callback ពី VIPTP ពេល AutoStop
+-- ASTHETIC HUB | FEATURE | Farming Manager V2
+-- Rewrite senior: EggCheck + Day/Night + AFK + VIPTP
+--
+-- O QUE MUDOU EM RELACAO A V1 (bugs reais corrigidos):
+--  1. Scan com CACHE por UID. V1 fazia GetDescendants() +
+--     require() em TODOS os ovos a cada 0.05s (20x/s).
+--     Isso lagava o executor e derrubava FPS no mobile.
+--     V2 resolve a categoria uma vez por UID e depois o
+--     scan vira leitura de tabela (barato).
+--  2. Single-driver. V1 tinha DOIS pilotos: o Day/NightLoop
+--     parado em "while WaitingForVIPTP" + a cadeia que o
+--     OnVIPTPComplete spawnava (FlyToSafe + StartVIPTP).
+--     Os dois podiam mandar StartVIPTP juntos (double-run).
+--     V2: OnVIPTPComplete so sinaliza; quem decide o
+--     proximo passo e sempre o loop principal.
+--  3. StopAll era async com race: mandava JumpOut (10s de
+--     jumps) e 0.5s depois ja voava p/ SafeZone enquanto o
+--     AFK DistCheck ainda puxava de volta p/ esteira
+--     (teleport fight). V2 espera o JumpOut terminar
+--     (com timeout) ANTES de voar.
+--  4. Re-valida o ovo antes do VIPTP. V1 guardava o UID a
+--     noite e atirava VIPTP de dia sem checar se o ovo
+--     sumiu (pego por outro player). V2 re-escaneia.
+--  5. RunId: Disable() invalida loops/callbacks pendentes.
+--     V1 deixava thread fantasma voar p/ SafeZone mesmo
+--     depois de desligar.
+--  6. Anti-kick real (VirtualUser.Idled). O AntiAFK antigo
+--     (mouse/camera) NAO impede kick do Roblox; sem isso
+--     farm AFK de horas morre em ~20min.
+--  7. VIPTP wait com timeout (120s). V1 esperava pra sempre
+--     se o VIPTP travasse -> char parado na safe zone.
+--  8. Rate real ($/s com scale+mutacoes) no sort, igual ao
+--     AutoFarm manual. V1 usava EarningRate base.
 -- ==================================================
 
 local Players = game:GetService("Players")
@@ -16,16 +42,14 @@ local Workspace = game:GetService("Workspace")
 local Player = Players.LocalPlayer
 
 -- ==================================================
--- AREA EGG CYCLE
+-- AREA EGG CYCLE (fase Dia/Noite do jogo)
 -- ==================================================
 local AreaEggCycle = nil
-
 pcall(function()
     AreaEggCycle = require(ReplicatedStorage.Shared.Util.AreaEggCycle)
 end)
-
 if not AreaEggCycle then
-    warn("[FarmingManager] AreaEggCycle not found! Using fallback.")
+    warn("[FarmingManager] AreaEggCycle nao encontrado! Usando fallback do HUD.")
 end
 
 -- ==================================================
@@ -42,98 +66,141 @@ local RETURN_SPEED = 800
 local FLY_OFFSET = 15
 local METHOD = "InstantTeleport"
 
+local VIPTP_TIMEOUT = 120 -- se o VIPTP nao completar, volta a escanear
+local JUMPOUT_TIMEOUT = 6 -- espera o JumpOut no maximo isso (s)
+
 -- ==================================================
--- EGG CHECK PREMIUM (បញ្ចូលក្នុង FarmingManager)
+-- RARITY (tudo normalizado p/ minusculo)
 -- ==================================================
 local SelectedRarities = { divine = true, eternal = true, secret = true, mythical = true, cosmic = true }
-
-local MeshIdMap = {}
-local MeshIdMapBuilt = false
 
 local RARITY_PRIORITY = {
     divine = 1,
     eternal = 2,
     secret = 3,
     mythical = 4,
-    cosmic = 5
+    cosmic = 5,
 }
 
--- normaliza "Divine"/"DIVINE"/"divine" para a mesma chave
 local function norm(s)
     if type(s) ~= "string" then return nil end
     return string.lower(s)
 end
 
--- diagnóstico do último scan (FindBestEgg atualiza a cada chamada)
-local LastScan = { total = 0, categorized = 0, matched = 0, note = "" }
-local LastFoundName = "none"
-local LastNoEggLog = 0
+-- ==================================================
+-- CACHE: MeshId -> categoria (resolve 1x, nao por scan)
+-- ==================================================
+local MeshIdMap = {}
+local MeshIdMapBuilt = false
 
 local function BuildMeshIdMap()
     if MeshIdMapBuilt then return end
-
-    local Assets = ReplicatedStorage:FindFirstChild("Data")
-    if not Assets then return end
-    Assets = Assets:FindFirstChild("Assets")
-    if not Assets then return end
-    local Configs = Assets:FindFirstChild("Configs")
+    local Data = ReplicatedStorage:FindFirstChild("Data")
+    local Configs = Data and Data:FindFirstChild("Assets")
+    Configs = Configs and Configs:FindFirstChild("Configs")
     local EggModels = ReplicatedStorage:FindFirstChild("Assets")
-    if EggModels then EggModels = EggModels:FindFirstChild("Models") end
-    if EggModels then EggModels = EggModels:FindFirstChild("Eggs") end
+    EggModels = EggModels and EggModels:FindFirstChild("Models")
+    EggModels = EggModels and EggModels:FindFirstChild("Eggs")
     if not Configs or not EggModels then return end
 
+    local Count = 0
     for _, Config in ipairs(Configs:GetChildren()) do
-        local Success, Module = pcall(function() return require(Config) end)
-        if Success and Module and Module.Egg then
+        local ok, Module = pcall(require, Config)
+        if ok and Module and Module.Egg then
             local ModelName = Module.Egg.ModelName or Config.Name
             local Template = EggModels:FindFirstChild(ModelName)
             if Template then
                 for _, Desc in ipairs(Template:GetDescendants()) do
-                    if Desc:IsA("MeshPart") and Desc.MeshId ~= "" then
+                    if (Desc:IsA("MeshPart") or Desc:IsA("SpecialMesh")) and Desc.MeshId ~= "" then
                         MeshIdMap[Desc.MeshId] = Config.Name
-                    end
-                    if Desc:IsA("SpecialMesh") and Desc.MeshId ~= "" then
-                        MeshIdMap[Desc.MeshId] = Config.Name
+                        Count = Count + 1
                     end
                 end
             end
         end
     end
-
     MeshIdMapBuilt = true
-    print("[FarmingManager] MeshId Map Built: " .. tostring(#Configs:GetChildren()) .. " Configs")
+    print("[FarmingManager] MeshId Map: " .. tostring(Count) .. " meshes")
 end
 
-local function GetPetData(AssetCategory)
-    local Assets = ReplicatedStorage:FindFirstChild("Data")
-    if not Assets then return nil end
-    Assets = Assets:FindFirstChild("Assets")
-    if not Assets then return nil end
-    local Configs = Assets:FindFirstChild("Configs")
+-- ==================================================
+-- CACHE: categoria -> dados do pet (resolve 1x)
+-- ==================================================
+local PetCache = {} -- [category] = { RarityRaw, RarityNorm, DisplayName, BaseRate }
+
+local function ExtractRarity(Module)
+    local R = Module.Rarity
+    if type(R) == "string" then return R end
+    if type(R) == "table" then
+        return R._id or R.RarityId or R.Name
+    end
+    return nil
+end
+
+local function GetPetCached(Category)
+    local Hit = PetCache[Category]
+    if Hit then return Hit end
+    local Data = ReplicatedStorage:FindFirstChild("Data")
+    local Configs = Data and Data:FindFirstChild("Assets")
+    Configs = Configs and Configs:FindFirstChild("Configs")
     if not Configs then return nil end
-
-    local Config = Configs:FindFirstChild(AssetCategory)
+    local Config = Configs:FindFirstChild(Category)
     if not Config then return nil end
-
-    local Success, Module = pcall(function() return require(Config) end)
-    if not Success or not Module then return nil end
-
-    return {
-        Rarity = Module.Rarity and (Module.Rarity._id or Module.Rarity.RarityId) or nil,
-        EarningRate = Module.EarningRate or 0,
-        DisplayName = Module.DisplayName or AssetCategory
+    local ok, Module = pcall(require, Config)
+    if not ok or not Module then return nil end
+    local Raw = ExtractRarity(Module)
+    local Entry = {
+        RarityRaw = Raw,
+        RarityNorm = norm(Raw),
+        DisplayName = Module.DisplayName or Category,
+        BaseRate = Module.EarningRate or 0,
     }
+    PetCache[Category] = Entry
+    return Entry
 end
 
-local function FindAssetCategory(EggModel)
-    if not MeshIdMapBuilt then BuildMeshIdMap() end
+-- Mutacoes: require uma vez, nao por ovo por scan
+local MutationsMod = nil
+local MutationsTried = false
+local function GetMutationMult(Mutations)
+    if not Mutations or #Mutations == 0 then return 1 end
+    if not MutationsTried then
+        MutationsTried = true
+        pcall(function()
+            MutationsMod = require(ReplicatedStorage.Shared.Modules.Mutations)
+        end)
+    end
+    if MutationsMod then
+        local ok, Mult = pcall(MutationsMod.EarningsFor, Mutations)
+        if ok and type(Mult) == "number" then return Mult end
+    end
+    return 1
+end
 
-    for _, Desc in ipairs(EggModel:GetDescendants()) do
-        if Desc:IsA("MeshPart") and Desc.MeshId ~= "" then
-            local Cat = MeshIdMap[Desc.MeshId]
-            if Cat then return Cat end
-        end
-        if Desc:IsA("SpecialMesh") and Desc.MeshId ~= "" then
+-- Taxa real $/s (mesma formula do AutoFarm manual)
+local function RealRate(BaseRate, Scale, Mutations)
+    Scale = Scale or 1
+    local Payout
+    if Scale <= 5 then
+        Payout = Scale ^ 1.85
+    else
+        Payout = (Scale / 5) ^ 1.2 * 19.637875755794113
+    end
+    return math.round(BaseRate * Payout * GetMutationMult(Mutations))
+end
+
+-- ==================================================
+-- CACHE: UID -> categoria (resolve 1x por ovo)
+-- UIDs somem do container quando coletados, entao o
+-- ChildRemoved invalida a entrada (evita memoria infinita)
+-- ==================================================
+local UidCategory = {} -- [uid] = category | false (false = Unknown, nao tenta de novo por 30s)
+local UidUnknownAt = {} -- [uid] = os.clock() do ultimo "unknown"
+
+local function DeepResolveCategory(Slot)
+    if not MeshIdMapBuilt then BuildMeshIdMap() end
+    for _, Desc in ipairs(Slot:GetDescendants()) do
+        if (Desc:IsA("MeshPart") or Desc:IsA("SpecialMesh")) and Desc.MeshId ~= "" then
             local Cat = MeshIdMap[Desc.MeshId]
             if Cat then return Cat end
         end
@@ -141,52 +208,98 @@ local function FindAssetCategory(EggModel)
     return nil
 end
 
-local function SortEggs(EggList)
-    table.sort(EggList, function(a, b)
-        local Pa = RARITY_PRIORITY[norm(a.Rarity)] or 999
-        local Pb = RARITY_PRIORITY[norm(b.Rarity)] or 999
-        if Pa ~= Pb then return Pa < Pb end
-        return a.EarningRate > b.EarningRate
-    end)
+local function GetContainer()
+    return Workspace:FindFirstChild("AreaEggSlotsClient")
 end
 
+local function UidLocation(Uid)
+    local C = GetContainer()
+    if C and C:FindFirstChild(Uid) then return "container" end
+    if Workspace:FindFirstChild(Uid) then return "workspace" end
+    return nil
+end
+
+-- diagnostico do ultimo scan
+local LastScan = { total = 0, categorized = 0, matched = 0, note = "" }
+local LastFoundName = "none"
+local LastNoEggLog = 0
+
 local function FindBestEgg()
-    local Container = workspace:FindFirstChild("AreaEggSlotsClient")
+    local Container = GetContainer()
     if not Container then
         LastScan = { total = 0, categorized = 0, matched = 0, note = "sem container AreaEggSlotsClient" }
         return nil
     end
 
-    local EggList = {}
+    local Best = nil
+    local BestScore = nil
     local total, categorized = 0, 0
+    local matched = 0
 
     for _, Slot in ipairs(Container:GetChildren()) do
         if Slot:IsA("Model") then
             total = total + 1
-            local Category = FindAssetCategory(Slot)
-            if Category then
+            local Uid = Slot.Name
+            local Category = UidCategory[Uid]
+
+            if Category == nil then
+                -- resolve 1x por UID (pcall: modelo quebrado nao pode matar o scan)
+                local ok, Cat = pcall(DeepResolveCategory, Slot)
+                if ok and Cat then
+                    Category = Cat
+                    UidCategory[Uid] = Cat
+                else
+                    UidCategory[Uid] = false
+                    UidUnknownAt[Uid] = os.clock()
+                    Category = false
+                end
+            elseif Category == false then
+                -- tenta de novo a cada 30s (jogo pode ter atualizado o MeshIdMap)
+                if os.clock() - (UidUnknownAt[Uid] or 0) > 30 then
+                    UidCategory[Uid] = nil
+                end
+            end
+
+            if Category and Category ~= false then
                 categorized = categorized + 1
-                local Data = GetPetData(Category)
-                local rn = Data and norm(Data.Rarity) or nil
-                if Data and rn and SelectedRarities[rn] then
-                    table.insert(EggList, {
-                        Slot = Slot,
-                        Uid = Slot.Name,
-                        Rarity = Data.Rarity,
-                        EarningRate = Data.EarningRate,
-                        DisplayName = Data.DisplayName
-                    })
+                local Pet = GetPetCached(Category)
+                if Pet and Pet.RarityNorm and SelectedRarities[Pet.RarityNorm] then
+                    matched = matched + 1
+                    local Scale = Slot:GetAttribute("AssetScale") or 1
+                    local Mutations = Slot:GetAttribute("Mutations") or {}
+                    local Rate = RealRate(Pet.BaseRate, Scale, Mutations)
+                    local Prio = RARITY_PRIORITY[Pet.RarityNorm] or 999
+                    -- score unico: prioridade manda, dentro da mesma raridade ganha o $/s
+                    local Score = Prio * 1e15 - Rate
+                    if not BestScore or Score < BestScore then
+                        BestScore = Score
+                        Best = {
+                            Slot = Slot,
+                            Uid = Uid,
+                            Rarity = Pet.RarityRaw,
+                            RarityNorm = Pet.RarityNorm,
+                            EarningRate = Rate,
+                            DisplayName = Pet.DisplayName,
+                        }
+                    end
                 end
             end
         end
     end
 
-    LastScan = { total = total, categorized = categorized, matched = #EggList, note = "" }
+    LastScan = { total = total, categorized = categorized, matched = matched, note = "" }
+    if Best then
+        LastFoundName = Best.DisplayName .. " (" .. tostring(Best.Rarity) .. " $" .. tostring(Best.EarningRate) .. "/s)"
+    end
+    return Best
+end
 
-    if #EggList == 0 then return nil end
-    SortEggs(EggList)
-    LastFoundName = EggList[1].DisplayName .. " (" .. tostring(EggList[1].Rarity) .. ")"
-    return EggList[1]
+local function InvalidateUid(_, Child)
+    -- ChildRemoved: limpa cache do UID (ovo coletado / despawnado)
+    if Child and Child.Name then
+        UidCategory[Child.Name] = nil
+        UidUnknownAt[Child.Name] = nil
+    end
 end
 
 local function SetRarities(List)
@@ -198,58 +311,50 @@ local function SetRarities(List)
     print("[FarmingManager] Rarities: " .. table.concat(List, ", "))
 end
 
--- loga a cada 5s o motivo de não sair da esteira (sem spam)
 local function LogNoEgg(prefix)
-    if tick() - LastNoEggLog < 5 then return end
-    LastNoEggLog = tick()
+    if os.clock() - LastNoEggLog < 5 then return end
+    LastNoEggLog = os.clock()
     print(prefix .. " sem ovo p/ farm | slots=" .. tostring(LastScan.total)
         .. " reconhecidos=" .. tostring(LastScan.categorized)
         .. " na-raridade=" .. tostring(LastScan.matched)
         .. (LastScan.note ~= "" and (" (" .. LastScan.note .. ")") or ""))
     if LastScan.total > 0 and LastScan.matched == 0 then
-        print("[FarmingManager] DICA: rode _G.ASTHETIC_FarmingManager.DebugScan() no console e me mande o resultado")
+        print("[FarmingManager] DICA: rode _G.ASTHETIC_FarmingManager.DebugScan() e me mande o resultado")
     end
 end
 
 -- ==================================================
--- STATE
+-- STATE (RunId invalida threads/callbacks velhos)
 -- ==================================================
 local FarmingEnabled = false
+local RunId = 0
 local CurrentState = "IDLE"
 local CurrentPhase = "UNKNOWN"
 local FarmingThread = nil
 local AFKStarted = false
-local PendingEggUid = nil
 local WaitingForVIPTP = false
+local VIPTPStartTime = 0
+local CurrentTargetUid = nil
+
+local Stats = { Collected = 0, VIPTPFails = 0, StartedAt = 0, LastFound = "none" }
 
 local FlyConnection = nil
 local BodyVelocity = nil
 local BodyGyro = nil
 
 -- ==================================================
--- GET HUMANOID
+-- HUMANOID / FLY
 -- ==================================================
 local function GetHumanoid()
     local Char = Player.Character
     if not Char then return nil, nil end
-    local Hum = Char:FindFirstChildOfClass("Humanoid")
-    local Root = Char:FindFirstChild("HumanoidRootPart")
-    return Hum, Root
+    return Char:FindFirstChildOfClass("Humanoid"), Char:FindFirstChild("HumanoidRootPart")
 end
 
--- ==================================================
--- CLEANUP FLY
--- ==================================================
 local function CleanupFly()
-    if FlyConnection then
-        FlyConnection:Disconnect()
-        FlyConnection = nil
-    end
+    if FlyConnection then FlyConnection:Disconnect() FlyConnection = nil end
     if BodyVelocity then
-        pcall(function()
-            BodyVelocity.Velocity = Vector3.zero
-            BodyVelocity.MaxForce = Vector3.zero
-        end)
+        pcall(function() BodyVelocity.Velocity = Vector3.zero BodyVelocity.MaxForce = Vector3.zero end)
         BodyVelocity:Destroy()
         BodyVelocity = nil
     end
@@ -259,12 +364,7 @@ local function CleanupFly()
         BodyGyro = nil
     end
     local Hum, Root = GetHumanoid()
-    if Hum then
-        pcall(function()
-            Hum.PlatformStand = false
-            Hum.Sit = false
-        end)
-    end
+    if Hum then pcall(function() Hum.PlatformStand = false Hum.Sit = false end) end
     if Root then
         pcall(function()
             Root.AssemblyLinearVelocity = Vector3.zero
@@ -273,22 +373,10 @@ local function CleanupFly()
     end
 end
 
--- ==================================================
--- SELF FLY TP
--- ==================================================
-local function SelfFlyTP(Destination, Speed, Callback)
+local function SelfFlyTP(Destination, Speed, MyRun)
     CleanupFly()
-
     local Hum, Root = GetHumanoid()
-    if not Hum or not Root then
-        if Callback then Callback() end
-        return
-    end
-    if Hum.Health <= 0 then
-        if Callback then Callback() end
-        return
-    end
-
+    if not Hum or not Root or Hum.Health <= 0 then return false end
     Hum.PlatformStand = true
 
     BodyVelocity = Instance.new("BodyVelocity")
@@ -306,341 +394,274 @@ local function SelfFlyTP(Destination, Speed, Callback)
     BodyGyro.CFrame = Root.CFrame
     BodyGyro.Parent = Root
 
-    local StartTime = tick()
-
+    local StartTime = os.clock()
+    local Done = false
     FlyConnection = RunService.Heartbeat:Connect(function()
-        if not FarmingEnabled then
-            CleanupFly()
-            return
-        end
-
+        if not FarmingEnabled or MyRun ~= RunId then CleanupFly() return end
         local Hum2, Root2 = GetHumanoid()
-        if not Hum2 or not Root2 then
-            CleanupFly()
-            return
+        if not Hum2 or not Root2 or Hum2.Health <= 0 or not BodyVelocity or not BodyGyro then
+            CleanupFly() return
         end
-        if Hum2.Health <= 0 then return end
-        if not BodyVelocity or not BodyGyro then CleanupFly() return end
-
         local CurrentPos = Root2.Position
         local Direction = Destination - CurrentPos
-        local TotalDist = Direction.Magnitude
-
-        if TotalDist <= 3 then
+        if Direction.Magnitude <= 3 or os.clock() - StartTime > 30 then
             CleanupFly()
-            Root2.CFrame = CFrame.new(Destination)
-            Root2.AssemblyLinearVelocity = Vector3.zero
-            Root2.AssemblyAngularVelocity = Vector3.zero
-            if Callback then Callback() end
+            if Direction.Magnitude <= 3 then
+                pcall(function()
+                    Root2.CFrame = CFrame.new(Destination)
+                    Root2.AssemblyLinearVelocity = Vector3.zero
+                    Root2.AssemblyAngularVelocity = Vector3.zero
+                end)
+                Done = true
+            end
             return
         end
-
-        if tick() - StartTime > 30 then
-            CleanupFly()
-            if Callback then Callback() end
-            return
-        end
-
         BodyVelocity.Velocity = Direction.Unit * Speed
         BodyGyro.CFrame = CFrame.new(CurrentPos, Destination)
     end)
+    return true
 end
 
 -- ==================================================
--- GET PHASE
+-- FASE DIA/NOITE
 -- ==================================================
 local function GetPhase()
     if AreaEggCycle then
-        local Success, IsNight = pcall(function()
-            return AreaEggCycle.IsNightPhase(Workspace:GetServerTimeNow())
-        end)
-
-        if Success then
-            if IsNight then
-                return "Night"
-            else
-                return "Day"
-            end
+        local ok, IsNight = pcall(AreaEggCycle.IsNightPhase, Workspace:GetServerTimeNow())
+        if ok then
+            return IsNight and "Night" or "Day"
         end
     end
-
-    local Success, Text = pcall(function()
+    local ok, Text = pcall(function()
         return Player.PlayerGui.HUD.GameHUD.BottomRight.NightTimer.Value.Text
     end)
-
-    if Success and Text then
+    if ok and type(Text) == "string" then
         local M = tonumber(string.match(Text, "(%d+)m")) or 0
         local S = tonumber(string.match(Text, "(%d+)s")) or 0
-        local Sec = M * 60 + S
-        if Sec > 10 then
-            return "Day"
-        else
-            return "Night"
-        end
+        if (M * 60 + S) > 10 then return "Day" else return "Night" end
     end
-
     return "UNKNOWN"
 end
 
 -- ==================================================
--- STOP ALL
+-- COORDENACAO AFK <-> VIPTP
 -- ==================================================
-local function StopAll()
-    if _G.ASTHETIC_AFKSystem and _G.ASTHETIC_AFKSystem.IsEnabled() then
-        local TreadmillPos = _G.ASTHETIC_AFKSystem.GetMyTreadmillPos()
-        if not TreadmillPos then
-            local _, Treadmill = _G.ASTHETIC_AFKSystem.FindMyPlotAndTreadmill()
-            if Treadmill then
-                TreadmillPos = Treadmill.Position
-            end
+local function EnsureAFK()
+    if not FarmingEnabled then return end
+    local AFK = _G.ASTHETIC_AFKSystem
+    if not AFK then return end
+    if AFK.IsEnabled() then AFKStarted = true return end
+    -- nunca liga o AFK no meio de um VIPTP (teleport fight)
+    local VIPTP = _G.ASTHETIC_VIPTP
+    if VIPTP and VIPTP.IsEnabled() then return end
+    AFK.Enable()
+    AFKStarted = true
+end
+
+-- Para o AFK e espera sair da esteira ANTES de voar.
+-- (V1 voava 0.5s depois enquanto o DistCheck puxava de volta.)
+local function StopAFKSync()
+    local AFK = _G.ASTHETIC_AFKSystem
+    if not AFK or not AFK.IsEnabled() then AFKStarted = false return end
+    local TreadmillPos = AFK.GetMyTreadmillPos()
+    if not TreadmillPos then
+        local _, Treadmill = AFK.FindMyPlotAndTreadmill()
+        if Treadmill then TreadmillPos = Treadmill.Position end
+    end
+    if TreadmillPos then
+        local done = false
+        AFK.JumpOutTreadmill(TreadmillPos, function() done = true end)
+        local t0 = os.clock()
+        while not done and os.clock() - t0 < JUMPOUT_TIMEOUT do
+            if not FarmingEnabled then break end
+            task.wait(0.1)
         end
-
-        if TreadmillPos then
-            _G.ASTHETIC_AFKSystem.JumpOutTreadmill(TreadmillPos, function()
-                _G.ASTHETIC_AFKSystem.Disable()
-                AFKStarted = false
-                print("[FarmingManager] ✅ AFK Stopped + Jumped out!")
-            end)
-        else
-            _G.ASTHETIC_AFKSystem.Disable()
-            AFKStarted = false
-        end
     end
+    AFK.Disable()
+    AFKStarted = false
+end
 
-    if _G.ASTHETIC_VIPTP and _G.ASTHETIC_VIPTP.IsEnabled() then
-        _G.ASTHETIC_VIPTP.Disable()
-        print("[FarmingManager] ✅ VIPTP Stopped")
-    end
-
-    if _G.ASTHETIC_TeleportSystem and _G.ASTHETIC_TeleportSystem.IsEnabled() then
-        _G.ASTHETIC_TeleportSystem.Disable()
-        print("[FarmingManager] ✅ TeleportSystem Stopped")
-    end
-
+local function StopFlightSystems()
+    StopAFKSync()
+    local VIPTP = _G.ASTHETIC_VIPTP
+    if VIPTP and VIPTP.IsEnabled() then VIPTP.Disable() print("[FarmingManager] VIPTP parado") end
+    local TS = _G.ASTHETIC_TeleportSystem
+    if TS and TS.IsEnabled() then TS.Disable() print("[FarmingManager] TeleportSystem parado") end
     CleanupFly()
 end
 
 -- ==================================================
--- FLY TO SAFE ZONE AND WAIT
+-- SAFE ZONE (retorna true/false; V1 ignorava falha)
 -- ==================================================
-local function FlyToSafeZoneAndWait()
-    local Hum, Root = GetHumanoid()
+local function FlyToSafeZoneAndWait(MyRun)
+    local _, Root = GetHumanoid()
     if not Root then return false end
-
-    local DistToSafe = (Root.Position - SAFE_ZONE).Magnitude
-
-    if DistToSafe <= SAFE_ZONE_DIST then
-        print("[FarmingManager] ✅ Already at Safe Zone")
-        return true
-    end
-
-    print("[FarmingManager] Fly to Safe Zone (Speed: " .. SAFE_FLY_SPEED .. ")...")
-
-    SelfFlyTP(SAFE_ZONE, SAFE_FLY_SPEED, function()
-        print("[FarmingManager] ✅ At Safe Zone")
-    end)
-
-    local WaitTime = 0
-    while FarmingEnabled and WaitTime < 10 do
-        local Hum2, Root2 = GetHumanoid()
-        if Root2 then
-            local Dist = (Root2.Position - SAFE_ZONE).Magnitude
-            if Dist <= SAFE_ZONE_DIST then
-                print("[FarmingManager] ✅ Reached Safe Zone (Dist: " .. math.floor(Dist) .. ")")
-                return true
-            end
-        end
-        task.wait(0.1)
-        WaitTime = WaitTime + 0.1
-    end
-
-    print("[FarmingManager] ⚠️ Safe Zone Wait Timeout")
-    return false
-end
-
--- ==================================================
--- START VIPTP
--- ==================================================
-local function StartVIPTP(EggUid)
-    if not _G.ASTHETIC_VIPTP then
-        warn("[FarmingManager] VIPTP not loaded!")
-        return
-    end
-
-    print("[FarmingManager] Starting VIPTP:")
-    print("  - Target UID: " .. tostring(EggUid))
-
-    WaitingForVIPTP = true
-    CurrentState = "VIPTP_RUN"
-    _G.ASTHETIC_VIPTP.SetTargetId(EggUid)
-    _G.ASTHETIC_VIPTP.Enable()
-end
-
--- ==================================================
--- ✅ CALLBACK ពី VIPTP (ពេល AutoStop)
--- ==================================================
-local function OnVIPTPComplete()
-    if not FarmingEnabled then return end
-    if not WaitingForVIPTP then return end
-
-    WaitingForVIPTP = false
-    print("[FarmingManager] ✅ VIPTP Completed → Check New Egg")
-
-    -- ពិនិត្យ Egg ថ្មីភ្លាមៗ
-    local BestEgg = FindBestEgg()
-
-    if BestEgg then
-        print("[FarmingManager] New Egg Found: " .. BestEgg.DisplayName)
-        PendingEggUid = BestEgg.Uid
-
-        -- ហោះទៅ Safe Zone ជាមុន រួចចាប់ផ្តើម VIPTP
-        task.spawn(function()
-            local ReachedSafe = FlyToSafeZoneAndWait()
-            if ReachedSafe and PendingEggUid then
-                task.wait(SAFE_WAIT_AFTER_REACH)
-                StartVIPTP(PendingEggUid)
-                PendingEggUid = nil
-            end
-        end)
-    else
-        print("[FarmingManager] No New Egg → AFK")
-        if _G.ASTHETIC_AFKSystem and not _G.ASTHETIC_AFKSystem.IsEnabled() then
-            _G.ASTHETIC_AFKSystem.Enable()
-            AFKStarted = true
-        end
-    end
-end
-
--- ==================================================
--- WAIT FOR DAY
--- ==================================================
-local function WaitForDay()
-    print("[FarmingManager] Waiting for Day...")
-    CurrentState = "WAIT_DAY"
-
-    while FarmingEnabled do
-        local Phase = GetPhase()
-        CurrentPhase = Phase
-
-        if Phase == "Day" then
-            print("[FarmingManager] ✅ Day Started!")
+    if (Root.Position - SAFE_ZONE).Magnitude <= SAFE_ZONE_DIST then return true end
+    if not SelfFlyTP(SAFE_ZONE, SAFE_FLY_SPEED, MyRun) then return false end
+    local t0 = os.clock()
+    while FarmingEnabled and MyRun == RunId and os.clock() - t0 < 12 do
+        local _, Root2 = GetHumanoid()
+        if Root2 and (Root2.Position - SAFE_ZONE).Magnitude <= SAFE_ZONE_DIST then
             return true
         end
-
-        task.wait(DAY_CHECK_INTERVAL)
+        task.wait(0.1)
     end
-
     return false
 end
 
 -- ==================================================
--- NIGHT LOOP
+-- VIPTP (com re-validacao + timeout; single-driver:
+-- o callback so sinaliza, o loop decide o proximo passo)
 -- ==================================================
-local function NightLoop()
-    print("[FarmingManager] NightLoop Started (0.05s)")
-    CurrentState = "NIGHT_SCAN"
+local function StartVIPTP(Uid, MyRun)
+    local VIPTP = _G.ASTHETIC_VIPTP
+    if not VIPTP then warn("[FarmingManager] VIPTP nao carregado!") return false end
+    if not UidLocation(Uid) then return false end -- ovo sumiu na espera
+    WaitingForVIPTP = true
+    VIPTPStartTime = os.clock()
+    CurrentTargetUid = Uid
+    CurrentState = "VIPTP_RUN"
+    print("[FarmingManager] VIPTP -> " .. tostring(Uid))
+    VIPTP.SetTargetId(Uid)
+    VIPTP.Enable()
+    return true
+end
 
-    while FarmingEnabled do
+local function WaitVIPTP(MyRun)
+    while FarmingEnabled and MyRun == RunId and WaitingForVIPTP do
+        if os.clock() - VIPTPStartTime > VIPTP_TIMEOUT then
+            warn("[FarmingManager] VIPTP timeout (" .. VIPTP_TIMEOUT .. "s), abortando e re-escaneando")
+            local VIPTP = _G.ASTHETIC_VIPTP
+            if VIPTP and VIPTP.IsEnabled() then pcall(function() VIPTP.Disable() end) end
+            WaitingForVIPTP = false
+            CurrentTargetUid = nil
+            Stats.VIPTPFails = Stats.VIPTPFails + 1
+            return false
+        end
+        task.wait(0.5)
+    end
+    return FarmingEnabled and MyRun == RunId
+end
+
+-- Chamado pelo VIPTP ao terminar. SO sinaliza, nao pilota.
+local function OnVIPTPComplete()
+    if not WaitingForVIPTP then return end
+    WaitingForVIPTP = false
+    local Uid = CurrentTargetUid
+    CurrentTargetUid = nil
+    if Uid and not UidLocation(Uid) then
+        Stats.Collected = Stats.Collected + 1
+        print("[FarmingManager] Ovo coletado! Total: " .. Stats.Collected)
+    else
+        print("[FarmingManager] VIPTP terminou (ovo ainda no mapa ou sumiu antes)")
+    end
+end
+
+-- ==================================================
+-- ESPERA O DIA (com RunId; V1 travava aqui p/ sempre)
+-- ==================================================
+local function WaitForDay(MyRun)
+    CurrentState = "WAIT_DAY"
+    while FarmingEnabled and MyRun == RunId do
         local Phase = GetPhase()
         CurrentPhase = Phase
+        if Phase == "Day" then return true end
+        task.wait(DAY_CHECK_INTERVAL)
+    end
+    return false
+end
 
-        if Phase == "Day" then
-            print("[FarmingManager] Day Started → Break NightLoop")
-            return
-        end
+-- ==================================================
+-- NIGHT LOOP: escaneia barato, achou ovo -> safe -> dia -> VIPTP
+-- ==================================================
+local function NightLoop(MyRun)
+    CurrentState = "NIGHT_SCAN"
+    while FarmingEnabled and MyRun == RunId do
+        local Phase = GetPhase()
+        CurrentPhase = Phase
+        if Phase == "Day" then return end
 
         local BestEgg = FindBestEgg()
-
-        if BestEgg then
-            print("[FarmingManager] ✅ Night + Egg Spawn: " .. BestEgg.DisplayName)
+        if BestEgg and Phase == "Night" then
+            print("[FarmingManager] Ovo a noite: " .. BestEgg.DisplayName .. " ($" .. tostring(BestEgg.EarningRate) .. "/s)")
+            Stats.LastFound = LastFoundName
             CurrentState = "NIGHT_EGG_FOUND"
-
-            PendingEggUid = BestEgg.Uid
-
-            StopAll()
-            task.wait(0.5)
-
-            local ReachedSafe = FlyToSafeZoneAndWait()
-
-            if ReachedSafe then
-                print("[FarmingManager] Waiting at Safe Zone for Day...")
+            StopFlightSystems()
+            task.wait(0.3)
+            if not (FarmingEnabled and MyRun == RunId) then return end
+            if not FlyToSafeZoneAndWait(MyRun) then
+                print("[FarmingManager] Falha indo p/ safe, tentando de novo no prox scan")
+                EnsureAFK()
+                task.wait(1)
+            else
                 task.wait(SAFE_WAIT_AFTER_REACH)
-
-                local IsDay = WaitForDay()
-
-                if IsDay and PendingEggUid then
-                    print("[FarmingManager] ✅ Day Reached → Start VIPTP")
-                    StartVIPTP(PendingEggUid)
-                    PendingEggUid = nil
-
-                    -- រង់ចាំ VIPTP ចប់ (Callback នឹងហៅ OnVIPTPComplete)
-                    while WaitingForVIPTP and FarmingEnabled do
-                        task.wait(0.5)
+                if WaitForDay(MyRun) then
+                    -- re-valida: prefere o MESMO ovo, senao o melhor atual
+                    local Uid = UidLocation(BestEgg.Uid) and BestEgg.Uid or nil
+                    if not Uid then
+                        local Fresh = FindBestEgg()
+                        if Fresh then Uid = Fresh.Uid end
+                    end
+                    if Uid and StartVIPTP(Uid, MyRun) then
+                        WaitVIPTP(MyRun)
+                    else
+                        print("[FarmingManager] Ovo sumiu antes do VIPTP -> AFK")
+                        EnsureAFK()
                     end
                 end
             end
-
-            return
         else
             CurrentState = "NIGHT_SCAN"
-            LogNoEgg("[FarmingManager] Night:")
-            if not AFKStarted then
-                if _G.ASTHETIC_AFKSystem and not _G.ASTHETIC_AFKSystem.IsEnabled() then
-                    _G.ASTHETIC_AFKSystem.Enable()
-                    AFKStarted = true
-                    print("[FarmingManager] AFK Started (No Egg)")
-                end
+            if Phase ~= "Night" then
+                -- UNKNOWN: nao sabe a fase, fica AFK quieto sem atirar VIPTP no escuro
+                EnsureAFK()
+            else
+                LogNoEgg("[FarmingManager] Night:")
+                EnsureAFK()
             end
         end
-
         task.wait(NIGHT_CHECK_INTERVAL)
     end
 end
 
 -- ==================================================
--- DAY LOOP
+-- DAY LOOP: achou ovo -> safe -> VIPTP na hora
 -- ==================================================
-local function DayLoop()
-    print("[FarmingManager] DayLoop Started (0.5s)")
+local function DayLoop(MyRun)
     CurrentState = "DAY_SCAN"
-
-    while FarmingEnabled do
+    while FarmingEnabled and MyRun == RunId do
         local Phase = GetPhase()
         CurrentPhase = Phase
-
-        if Phase == "Night" then
-            print("[FarmingManager] Night Started → Break DayLoop")
-            return
-        end
+        if Phase == "Night" then return end
+        if Phase == "UNKNOWN" then EnsureAFK() task.wait(0.5) continue end
 
         local BestEgg = FindBestEgg()
-
         if BestEgg then
-            print("[FarmingManager] ✅ Day + Egg: " .. BestEgg.DisplayName)
+            print("[FarmingManager] Ovo de dia: " .. BestEgg.DisplayName .. " ($" .. tostring(BestEgg.EarningRate) .. "/s)")
+            Stats.LastFound = LastFoundName
             CurrentState = "DAY_EGG_FOUND"
-
-            StopAll()
+            StopFlightSystems()
+            task.wait(0.3)
+            if not (FarmingEnabled and MyRun == RunId) then return end
+            FlyToSafeZoneAndWait(MyRun) -- se falhar, VIPTP tenta mesmo assim do ponto atual
             task.wait(0.5)
-
-            FlyToSafeZoneAndWait()
-            task.wait(1)
-
-            StartVIPTP(BestEgg.Uid)
-
-            -- รង់ចាំ VIPTP ចប់ (Callback នឹងហៅ OnVIPTPComplete)
-            while WaitingForVIPTP and FarmingEnabled do
-                task.wait(0.5)
+            if not (FarmingEnabled and MyRun == RunId) then return end
+            local Uid = UidLocation(BestEgg.Uid) and BestEgg.Uid or nil
+            if not Uid then
+                local Fresh = FindBestEgg()
+                if Fresh then Uid = Fresh.Uid end
+            end
+            if Uid and StartVIPTP(Uid, MyRun) then
+                WaitVIPTP(MyRun)
+            else
+                print("[FarmingManager] Ovo sumiu antes do VIPTP -> AFK")
+                EnsureAFK()
             end
         else
             CurrentState = "DAY_SCAN"
             LogNoEgg("[FarmingManager] Day:")
-            if _G.ASTHETIC_AFKSystem and not _G.ASTHETIC_AFKSystem.IsEnabled() then
-                _G.ASTHETIC_AFKSystem.Enable()
-                AFKStarted = true
-                print("[FarmingManager] AFK Started (No Egg)")
-            end
+            EnsureAFK()
         end
-
         task.wait(DAY_CHECK_INTERVAL)
     end
 end
@@ -648,32 +669,73 @@ end
 -- ==================================================
 -- MAIN LOOP
 -- ==================================================
-local function MainLoop()
-    print("[FarmingManager] MainLoop Started")
-
-    while FarmingEnabled do
+local function MainLoop(MyRun)
+    print("[FarmingManager] MainLoop iniciado")
+    while FarmingEnabled and MyRun == RunId do
         local Phase = GetPhase()
         CurrentPhase = Phase
-
-        print("[FarmingManager] Phase: " .. Phase)
-
-        -- pcall: um erro num scan nunca pode matar o manager em silêncio
-        -- (antes isso travava o char na esteira sem nenhum aviso)
         local ok, err
         if Phase == "Day" then
-            ok, err = pcall(DayLoop)
+            ok, err = pcall(DayLoop, MyRun)
         else
-            ok, err = pcall(NightLoop)
+            ok, err = pcall(NightLoop, MyRun)
         end
         if not ok then
             CurrentState = "LOOP_ERROR"
-            warn("[FarmingManager] ❌ Loop error (tentando de novo em 2s): " .. tostring(err))
+            warn("[FarmingManager] Erro no loop (retry em 2s): " .. tostring(err))
             task.wait(2)
         end
-
         task.wait(0.1)
     end
-    print("[FarmingManager] MainLoop Stopped")
+    print("[FarmingManager] MainLoop parado")
+end
+
+-- ==================================================
+-- ANTI-KICK REAL (VirtualUser) + AntiAFK
+-- mousemoverel/camera SOZINHOS nao evitam kick do Roblox.
+-- ==================================================
+local VirtualUser = game:GetService("VirtualUser")
+local IdledConn = nil
+
+local function EnableIdleProtection()
+    if IdledConn then return end
+    IdledConn = Player.Idled:Connect(function()
+        pcall(function() VirtualUser:ClickButton2(Vector2.new()) end)
+    end)
+    local AntiAFK = _G.ASTHETIC_AntiAFK
+    if AntiAFK and not AntiAFK.IsEnabled() then pcall(function() AntiAFK.Enable() end) end
+    print("[FarmingManager] Anti-kick ON")
+end
+
+local function DisableIdleProtection()
+    if IdledConn then pcall(function() IdledConn:Disconnect() end) IdledConn = nil end
+end
+
+-- Se o char morrer/respawnar no meio do farm, reancora o loop
+local RespawnConn = nil
+local function HookRespawn()
+    if RespawnConn then return end
+    RespawnConn = Player.CharacterAdded:Connect(function()
+        if not FarmingEnabled then return end
+        print("[FarmingManager] Respawn detectado, retomando em 3s...")
+        task.wait(3)
+        if FarmingEnabled then
+            StopFlightSystems()
+            EnsureAFK()
+        end
+    end)
+end
+
+-- Invalida cache de UID quando o ovo sai do container (coletado/despawn)
+local ContainerHooked = nil
+local function HookContainer()
+    local C = GetContainer()
+    if C and C ~= ContainerHooked then
+        ContainerHooked = C
+        pcall(function()
+            C.ChildRemoved:Connect(InvalidateUid)
+        end)
+    end
 end
 
 -- ==================================================
@@ -682,37 +744,38 @@ end
 local function Enable()
     if FarmingEnabled then return end
     FarmingEnabled = true
+    RunId = RunId + 1
+    local MyRun = RunId
     CurrentState = "CHECK_TIME"
     AFKStarted = false
-    PendingEggUid = nil
     WaitingForVIPTP = false
+    CurrentTargetUid = nil
+    Stats.StartedAt = os.time()
 
-    if FarmingThread then
-        pcall(function() task.cancel(FarmingThread) end)
-        FarmingThread = nil
-    end
-    FarmingThread = task.spawn(function() MainLoop() end)
+    BuildMeshIdMap()
+    HookContainer()
+    HookRespawn()
+    EnableIdleProtection()
 
+    if FarmingThread then pcall(task.cancel, FarmingThread) FarmingThread = nil end
+    FarmingThread = task.spawn(MainLoop, MyRun)
     print("[ASTHETIC] FarmingManager: ON")
 end
 
 local function Disable()
     if not FarmingEnabled then return end
     FarmingEnabled = false
-
-    if FarmingThread then
-        pcall(function() task.cancel(FarmingThread) end)
-        FarmingThread = nil
-    end
-
-    StopAll()
-
-    AFKStarted = false
-    PendingEggUid = nil
+    RunId = RunId + 1 -- mata loops, voos e callbacks pendentes
+    if FarmingThread then pcall(task.cancel, FarmingThread) FarmingThread = nil end
     WaitingForVIPTP = false
+    CurrentTargetUid = nil
     CurrentState = "IDLE"
     CurrentPhase = "UNKNOWN"
-    print("[ASTHETIC] FarmingManager: OFF")
+    task.spawn(function()
+        StopFlightSystems()
+        DisableIdleProtection()
+    end)
+    print("[ASTHETIC] FarmingManager: OFF | Coletados nesta sessao: " .. Stats.Collected)
 end
 
 local function Toggle()
@@ -720,7 +783,7 @@ local function Toggle()
 end
 
 -- ==================================================
--- EXPORT
+-- EXPORT (API 100% compativel com a V1 + extras)
 -- ==================================================
 _G.ASTHETIC_FarmingManager = {
     Enable = Enable,
@@ -731,7 +794,20 @@ _G.ASTHETIC_FarmingManager = {
     GetState = function() return CurrentState end,
     GetPhase = function() return CurrentPhase end,
     FindBestEgg = FindBestEgg,
-    -- ✅ Diagnóstico: rode no console do executor e mande o resultado
+    OnVIPTPComplete = OnVIPTPComplete,
+    GetStats = function()
+        return {
+            Collected = Stats.Collected,
+            VIPTPFails = Stats.VIPTPFails,
+            LastFound = Stats.LastFound,
+            State = CurrentState,
+            Phase = CurrentPhase,
+            ScanTotal = LastScan.total,
+            ScanCategorized = LastScan.categorized,
+            ScanMatched = LastScan.matched,
+            ScanNote = LastScan.note,
+        }
+    end,
     GetDebug = function()
         return {
             State = CurrentState,
@@ -742,30 +818,33 @@ _G.ASTHETIC_FarmingManager = {
             ScanMatched = LastScan.matched,
             ScanNote = LastScan.note,
             LastFound = LastFoundName,
+            Collected = Stats.Collected,
         }
     end,
     DebugScan = function()
-        local Container = workspace:FindFirstChild("AreaEggSlotsClient")
+        local Container = GetContainer()
         if not Container then
-            print("[FarmingManager][Debug] SEM container AreaEggSlotsClient no workspace!")
+            print("[FarmingManager][Debug] SEM container AreaEggSlotsClient!")
             return nil
         end
         local kids = Container:GetChildren()
-        print("[FarmingManager][Debug] slots no container: " .. #kids)
+        print("[FarmingManager][Debug] slots: " .. #kids)
         local shown = 0
         for _, Slot in ipairs(kids) do
             if shown >= 10 then break end
             if Slot:IsA("Model") then
                 shown = shown + 1
-                local Category = FindAssetCategory(Slot)
-                local info = "slot=" .. Slot.Name .. " categoria=" .. tostring(Category)
-                if Category then
-                    local Data = GetPetData(Category)
-                    if Data then
-                        info = info .. " raridade=" .. tostring(Data.Rarity)
-                            .. " nome=" .. tostring(Data.DisplayName)
-                            .. " $/=" .. tostring(Data.EarningRate)
-                            .. " passa-filtro=" .. tostring(SelectedRarities[norm(Data.Rarity)] == true)
+                local ok, Cat = pcall(DeepResolveCategory, Slot)
+                local info = "slot=" .. Slot.Name .. " categoria=" .. tostring(ok and Cat or "ERRO")
+                if ok and Cat then
+                    local Pet = GetPetCached(Cat)
+                    if Pet then
+                        local Scale = Slot:GetAttribute("AssetScale") or 1
+                        local Rate = RealRate(Pet.BaseRate, Scale, Slot:GetAttribute("Mutations") or {})
+                        info = info .. " raridade=" .. tostring(Pet.RarityRaw)
+                            .. " nome=" .. tostring(Pet.DisplayName)
+                            .. " $/s=" .. tostring(Rate)
+                            .. " passa-filtro=" .. tostring(SelectedRarities[Pet.RarityNorm] == true)
                     else
                         info = info .. " (sem dados no config!)"
                     end
@@ -786,17 +865,24 @@ _G.ASTHETIC_FarmingManager = {
     RETURN_SPEED = RETURN_SPEED,
     FLY_OFFSET = FLY_OFFSET,
     METHOD = METHOD,
-    -- ✅ Callback សម្រាប់ VIPTP
-    OnVIPTPComplete = OnVIPTPComplete,
 }
 
+-- Registra no CharacterSystem (se existir) p/ sobreviver ao BypassAntiCheat
+if _G.ASTHETIC_CharacterSystem then
+    pcall(function()
+        _G.ASTHETIC_CharacterSystem:RegisterFeature({
+            Name = "FarmingManager",
+            Enable = Enable,
+            Disable = Disable,
+            IsEnabled = function() return FarmingEnabled end,
+        })
+    end)
+end
 
--- ==================================================
--- BUILD MESHID MAP ON LOAD
--- ==================================================
 task.spawn(function()
     task.wait(2)
     BuildMeshIdMap()
+    HookContainer()
 end)
 
-print("✅ FarmingManager Loaded (Egg Check + Day/Night + AFK + VIPTP + Callback)")
+print("✅ FarmingManager V2 Loaded (cache + single-driver + anti-kick + revalidacao)")

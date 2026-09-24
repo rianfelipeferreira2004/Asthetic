@@ -100,19 +100,26 @@ end
 
 -- ==================================================
 -- SORT EGG (Divine > Eternal > Secret > $/s)
+-- chaves em minusculo + norm(): "Divine" e "divine"
+-- passam a ser o mesmo filtro (antes quebravam facil)
 -- ==================================================
+local function norm(s)
+    if type(s) ~= "string" then return nil end
+    return string.lower(s)
+end
+
 local RARITY_PRIORITY = {
-    Divine = 1,
-    Eternal = 2,
-    Secret = 3,
-    Mythical = 4,
-    Cosmic = 5
+    divine = 1,
+    eternal = 2,
+    secret = 3,
+    mythical = 4,
+    cosmic = 5
 }
 
 local function SortEggs(EggList)
     table.sort(EggList, function(a, b)
-        local Pa = RARITY_PRIORITY[a.Rarity] or 999
-        local Pb = RARITY_PRIORITY[b.Rarity] or 999
+        local Pa = RARITY_PRIORITY[norm(a.Rarity)] or 999
+        local Pb = RARITY_PRIORITY[norm(b.Rarity)] or 999
         if Pa ~= Pb then return Pa < Pb end
         return a.EarningRate > b.EarningRate
     end)
@@ -132,7 +139,7 @@ local function FindBestEgg()
             local Category = FindAssetCategory(Slot)
             if Category then
                 local Data = GetPetData(Category)
-                if Data and SelectedRarities[Data.Rarity] then
+                if Data and SelectedRarities[norm(Data.Rarity)] then
                     table.insert(EggList, {
                         Slot = Slot,
                         Uid = Slot.Name,
@@ -164,7 +171,7 @@ local function FindAllEggs()
             local Category = FindAssetCategory(Slot)
             if Category then
                 local Data = GetPetData(Category)
-                if Data and SelectedRarities[Data.Rarity] then
+                if Data and SelectedRarities[norm(Data.Rarity)] then
                     table.insert(EggList, {
                         Slot = Slot,
                         Uid = Slot.Name,
@@ -187,9 +194,10 @@ end
 local function GetEggsByRarity(Rarity)
     local AllEggs = FindAllEggs()
     local Filtered = {}
-    
+    local Want = norm(Rarity)
+
     for _, Egg in ipairs(AllEggs) do
-        if Egg.Rarity == Rarity then
+        if norm(Egg.Rarity) == Want then
             table.insert(Filtered, Egg)
         end
     end
@@ -203,7 +211,8 @@ end
 local function SetRarities(List)
     SelectedRarities = {}
     for _, r in ipairs(List) do
-        SelectedRarities[r] = true
+        local rn = norm(r)
+        if rn then SelectedRarities[rn] = true end
     end
     print("[EggCheckPremium] Rarities: " .. table.concat(List, ", "))
 end
