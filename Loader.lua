@@ -8,14 +8,16 @@ local BASE_URL = "https://raw.githubusercontent.com/rianfelipeferreira2004/Asthe
 
 _G.YOKUDO_EnablePrint = false
 
+-- NÃO sobrescreve o print global (quebrava módulos internos do CoreGui
+-- como RobloxGui.Modules.Common.Locales.en-us). Usa helper local.
 local oldPrint = print
-print = function(...)
+local function YPrint(...)
     if _G.YOKUDO_EnablePrint then
         oldPrint(...)
     end
 end
 
-print("🔵 Loading YOKUDO HUB...")
+YPrint("🔵 Loading YOKUDO HUB...")
 
 -- ==================================================
 -- CACHE SYSTEM
@@ -38,9 +40,24 @@ end
 repeat task.wait() until game:IsLoaded() and game.Players.LocalPlayer
 
 local Player = game.Players.LocalPlayer
-local CoreGui = game:GetService("CoreGui")
 
-print("✅ Game loaded, Player: " .. Player.Name)
+-- Parent seguro: gethui/get_hui/protectgui quando existir, senão CoreGui.
+-- Parentear direto no CoreGui em alguns executores dispara erro interno
+-- do RobloxGui (Locales en-us). Por isso resolve com pcall + fallback.
+local function GetGuiParent()
+    local ok, hui = pcall(function()
+        if type(gethui) == "function" then return gethui() end
+        if type(get_hui) == "function" then return get_hui() end
+    end)
+    if ok and hui then return hui end
+    local ok2, cg = pcall(function() return game:GetService("CoreGui") end)
+    if ok2 and cg then return cg end
+    return game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+end
+
+local GuiParent = GetGuiParent()
+
+YPrint("✅ Game loaded, Player: " .. Player.Name)
 
 -- ==================================================
 -- CREATE LOADING SCREEN
@@ -52,7 +69,7 @@ local function CreateLoadingScreen()
     LoadingGui.IgnoreGuiInset = true
     LoadingGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     LoadingGui.DisplayOrder = 9999
-    LoadingGui.Parent = CoreGui
+    LoadingGui.Parent = GuiParent
 
     local Container = Instance.new("Frame")
     Container.Name = "Container"
@@ -270,11 +287,11 @@ loadstring(GetScript("Features/BypassAntiCheat.lua"))()
 -- ==================================================
 -- ✅ WAIT 2 SECONDS THEN APPLY CONFIG
 -- ==================================================
-print("⏳ Waiting 2s before applying config...")
+YPrint("⏳ Waiting 2s before applying config...")
 task.wait(2)
 
 if _G.YOKUDO_ConfigSystem then
-    print("🔧 Applying Config...")
+    YPrint("🔧 Applying Config...")
     _G.YOKUDO_ConfigSystem.Load()
 end
 
@@ -282,5 +299,5 @@ Loading.Update(100)
 
 task.wait(0.3)
 Loading.Destroy()
-print("✅ Loading Screen Closed!")
-print("🚀 YOKUDO HUB | Ready!")
+YPrint("✅ Loading Screen Closed!")
+YPrint("🚀 YOKUDO HUB | Ready!")

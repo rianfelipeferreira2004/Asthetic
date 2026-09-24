@@ -38,7 +38,9 @@ end)
 -- TOGGLE (Y icon)
 -- ==================================================
 local ASSET_ID = Settings.AssetID
-Services.ContentProvider:PreloadAsync({ASSET_ID})
+pcall(function()
+    Services.ContentProvider:PreloadAsync({ASSET_ID})
+end)
 
 local ToggleScreenGui = Instance.new("ScreenGui")
 ToggleScreenGui.Name = "ToggleGUI"
