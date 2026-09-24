@@ -1,5 +1,5 @@
 -- ==================================================
--- YOKUDO HUB - TELEPORT SYSTEM (DUAL MODE + DUAL OPTION)
+-- ASTHETIC HUB - TELEPORT SYSTEM (DUAL MODE + DUAL OPTION)
 -- First Egg: FlyTP (Shot TP, Offset 10, Speed 1000)
 -- Target Egg: FlyTP / Instant (Lock 1)
 -- Safe Zone: FlyTP (No Shot TP, Offset 10, Speed 800)
@@ -28,11 +28,11 @@ pcall(function()
 end)
 
 if not CollectEvent then
-    warn("[YOKUDO] CollectEvent not found")
+    warn("[ASTHETIC] CollectEvent not found")
     return
 end
 
-print("[YOKUDO] TeleportSystem: CollectEvent OK")
+print("[ASTHETIC] TeleportSystem: CollectEvent OK")
 
 -- ==================================================
 -- ✅ SETTINGS (កែឱ្យលឿន)
@@ -192,7 +192,7 @@ local function EnableRagdollBypass()
         end
     end)
 
-    print("[YOKUDO] Ragdoll Bypass: ON")
+    print("[ASTHETIC] Ragdoll Bypass: ON")
 end
 
 local function DisableRagdollBypass()
@@ -204,7 +204,7 @@ local function DisableRagdollBypass()
         RagdollConnection = nil
     end
 
-    print("[YOKUDO] Ragdoll Bypass: OFF")
+    print("[ASTHETIC] Ragdoll Bypass: OFF")
 end
 
 -- ==================================================
@@ -261,7 +261,7 @@ local function CleanupMovers()
     local Hum, Root = GetHumanoid()
     if Root then
         for _, Child in ipairs(Root:GetChildren()) do
-            if Child.Name == "YokudoBV" or Child.Name == "YokudoBG" then
+            if Child.Name == "AstheticBV" or Child.Name == "AstheticBG" then
                 pcall(function() Child:Destroy() end)
             end
         end
@@ -389,14 +389,14 @@ local function FlyTP(Destination, Speed, UseShotTP, IsSafeZone, Callback)
     Hum.PlatformStand = true
 
     BodyVelocity = Instance.new("BodyVelocity")
-    BodyVelocity.Name = "YokudoBV"
+    BodyVelocity.Name = "AstheticBV"
     BodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     BodyVelocity.P = 1250
     BodyVelocity.Velocity = Vector3.zero
     BodyVelocity.Parent = Root
 
     BodyGyro = Instance.new("BodyGyro")
-    BodyGyro.Name = "YokudoBG"
+    BodyGyro.Name = "AstheticBG"
     BodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     BodyGyro.P = 3000
     BodyGyro.D = 500
@@ -505,10 +505,10 @@ end
 -- ==================================================
 local function TeleportToTarget(TargetPos, Callback)
     if CurrentMethod == "InstantTeleport" then
-        print("[YOKUDO] Instant TP to Target")
+        print("[ASTHETIC] Instant TP to Target")
         InstantFlyTP(TargetPos, Callback)
     else
-        print("[YOKUDO] FlyTP to Target (Shot TP)")
+        print("[ASTHETIC] FlyTP to Target (Shot TP)")
         FlyTP(TargetPos, FLY_SPEED, true, false, Callback)
     end
 end
@@ -562,7 +562,7 @@ local function FireForestStrike()
         end
     end)
 
-    print("[YOKUDO] ForestStrike Fired")
+    print("[ASTHETIC] ForestStrike Fired")
 end
 
 -- ==================================================
@@ -666,7 +666,7 @@ local function AutoStop()
     StopStrikeLoop()
     RestoreStats()
 
-    print("[YOKUDO] TeleportSystem: Auto Stop")
+    print("[ASTHETIC] TeleportSystem: Auto Stop")
 end
 
 -- ==================================================
@@ -713,7 +713,7 @@ end
 local function FlyToSafeZone()
     CurrentStep = "to_safe"
 
-    print("[YOKUDO] FlyTP to Safe Zone")
+    print("[ASTHETIC] FlyTP to Safe Zone")
 
     FlyTP(SAFE_ZONE, RETURN_SPEED, false, true, function()
         AutoStop()
@@ -880,7 +880,7 @@ local function StartProcess()
     StartActiveHeartbeat()
     StartStrikeLoop()
 
-    print("[YOKUDO] FlyTP to First Egg (Shot TP)")
+    print("[ASTHETIC] FlyTP to First Egg (Shot TP)")
     FlyTP(EggPos, FLY_SPEED, true, false, function()
         CurrentStep = "collect_first"
     end)
@@ -912,7 +912,7 @@ local function FullReset()
     StopStrikeLoop()
     RestoreStats()
 
-    print("[YOKUDO] TeleportSystem: Full Reset")
+    print("[ASTHETIC] TeleportSystem: Full Reset")
 end
 
 -- ==================================================
@@ -920,30 +920,30 @@ end
 -- ==================================================
 local function Enable()
     if Running then return end
-    if not CollectEvent then warn("[YOKUDO] CollectEvent not found") return end
-    if not TARGET_UID then warn("[YOKUDO] No Target ID") return end
+    if not CollectEvent then warn("[ASTHETIC] CollectEvent not found") return end
+    if not TARGET_UID then warn("[ASTHETIC] No Target ID") return end
 
     FullReset()
     StartProcess()
 
-    print("[YOKUDO] TeleportSystem: ON | Method: " .. CurrentMethod)
+    print("[ASTHETIC] TeleportSystem: ON | Method: " .. CurrentMethod)
 end
 
 local function Disable()
     FullReset()
-    print("[YOKUDO] TeleportSystem: OFF")
+    print("[ASTHETIC] TeleportSystem: OFF")
 end
 
 local function SetTargetId(Id)
     TARGET_UID = Id
-    print("[YOKUDO] TeleportSystem Target ID: " .. tostring(Id))
+    print("[ASTHETIC] TeleportSystem Target ID: " .. tostring(Id))
 end
 
 local function SetSpeed(Value)
     Value = math.clamp(Value, 50, 1100)
     FLY_SPEED = Value
     RETURN_SPEED = Value
-    print("[YOKUDO] TeleportSystem Speed: " .. tostring(Value))
+    print("[ASTHETIC] TeleportSystem Speed: " .. tostring(Value))
 end
 
 local function SetMethod(Method)
@@ -952,7 +952,7 @@ local function SetMethod(Method)
     else
         CurrentMethod = "TeleportFly"
     end
-    print("[YOKUDO] TeleportSystem Method: " .. CurrentMethod)
+    print("[ASTHETIC] TeleportSystem Method: " .. CurrentMethod)
 end
 
 local function GetMethod()
@@ -966,7 +966,7 @@ end
 -- ==================================================
 -- EXPORT
 -- ==================================================
-_G.YOKUDO_TeleportSystem = {
+_G.ASTHETIC_TeleportSystem = {
     Enable = Enable,
     Disable = Disable,
     SetTargetId = SetTargetId,

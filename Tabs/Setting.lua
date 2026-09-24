@@ -1,8 +1,8 @@
 --==================================================
--- YOKUDO HUB | TAB | Setting
+-- ASTHETIC HUB | TAB | Setting
 --==================================================
 
-local TabsManager = _G.YOKUDO_TabsManager
+local TabsManager = _G.ASTHETIC_TabsManager
 local TweenService = game:GetService("TweenService")
 
 local SettingTab, SettingPage = TabsManager:RegisterTab("Setting", 7, "SETTING")
@@ -47,7 +47,7 @@ MethodTitle.Font = Enum.Font.Gotham
 MethodTitle.ZIndex = 101
 MethodTitle.Parent = MethodHolder
 
-local SelectedMethod = _G.YOKUDO_SelectedMethod or "TeleportFly"
+local SelectedMethod = _G.ASTHETIC_SelectedMethod or "TeleportFly"
 
 local DropdownBtn = Instance.new("TextButton")
 DropdownBtn.Size = UDim2.new(0, 110, 0, 28)
@@ -126,13 +126,13 @@ local function CreateOption(Name, Order)
         DropdownBtn.Text = Name .. " ▼"
         DropdownList.Visible = false
 
-        _G.YOKUDO_SelectedMethod = Name
+        _G.ASTHETIC_SelectedMethod = Name
 
-        if _G.YOKUDO_ConfigSystem then
-            _G.YOKUDO_ConfigSystem.Save()
+        if _G.ASTHETIC_ConfigSystem then
+            _G.ASTHETIC_ConfigSystem.Save()
         end
 
-        print("[YOKUDO] Method Teleport Selected: " .. Name)
+        print("[ASTHETIC] Method Teleport Selected: " .. Name)
     end)
 
     Option.MouseEnter:Connect(function()
@@ -155,8 +155,8 @@ DropdownBtn.MouseButton1Click:Connect(function()
     DropdownList.Visible = not DropdownList.Visible
 end)
 
-if _G.YOKUDO_SelectedMethod == nil then
-    _G.YOKUDO_SelectedMethod = "TeleportFly"
+if _G.ASTHETIC_SelectedMethod == nil then
+    _G.ASTHETIC_SelectedMethod = "TeleportFly"
 end
 
 --==================================================
@@ -194,7 +194,7 @@ SpeedTitle.Font = Enum.Font.Gotham
 SpeedTitle.ZIndex = 2
 SpeedTitle.Parent = SpeedHolder
 
-local InitialSpeed = _G.YOKUDO_TeleportSpeed or 300
+local InitialSpeed = _G.ASTHETIC_TeleportSpeed or 300
 
 local SpeedTextBox = Instance.new("TextBox")
 SpeedTextBox.Size = UDim2.new(0, 80, 0, 28)
@@ -235,33 +235,33 @@ SpeedTextBox.FocusLost:Connect(function()
         Value = math.clamp(Value, 50, 1100)
         SpeedTextBox.Text = tostring(Value)
 
-        _G.YOKUDO_TeleportSpeed = Value
+        _G.ASTHETIC_TeleportSpeed = Value
 
-        if _G.YOKUDO_TeleportSystem then
-            _G.YOKUDO_TeleportSystem.SetSpeed(Value)
+        if _G.ASTHETIC_TeleportSystem then
+            _G.ASTHETIC_TeleportSystem.SetSpeed(Value)
         end
 
-        if _G.YOKUDO_ConfigSystem then
-            _G.YOKUDO_ConfigSystem.Save()
+        if _G.ASTHETIC_ConfigSystem then
+            _G.ASTHETIC_ConfigSystem.Save()
         end
 
-        print("[YOKUDO] Teleport Speed: " .. tostring(Value))
+        print("[ASTHETIC] Teleport Speed: " .. tostring(Value))
     else
         SpeedTextBox.Text = "300"
-        _G.YOKUDO_TeleportSpeed = 300
+        _G.ASTHETIC_TeleportSpeed = 300
 
-        if _G.YOKUDO_TeleportSystem then
-            _G.YOKUDO_TeleportSystem.SetSpeed(300)
+        if _G.ASTHETIC_TeleportSystem then
+            _G.ASTHETIC_TeleportSystem.SetSpeed(300)
         end
 
-        if _G.YOKUDO_ConfigSystem then
-            _G.YOKUDO_ConfigSystem.Save()
+        if _G.ASTHETIC_ConfigSystem then
+            _G.ASTHETIC_ConfigSystem.Save()
         end
     end
 end)
 
-if _G.YOKUDO_TeleportSpeed == nil then
-    _G.YOKUDO_TeleportSpeed = 300
+if _G.ASTHETIC_TeleportSpeed == nil then
+    _G.ASTHETIC_TeleportSpeed = 300
 end
 
 --==================================================
@@ -344,15 +344,15 @@ local function ToggleWalkSpeed()
     if WalkSpeedEnabled then
         WalkSpeedCheckButton.BackgroundColor3 = Color3.fromRGB(105, 90, 190)
         WalkSpeedStroke.Color = Color3.fromRGB(135, 120, 225)
-        if _G.YOKUDO_WalkSpeed then
-            _G.YOKUDO_WalkSpeed.SetValue(WalkSpeedValue)
-            _G.YOKUDO_WalkSpeed.Enable()
+        if _G.ASTHETIC_WalkSpeed then
+            _G.ASTHETIC_WalkSpeed.SetValue(WalkSpeedValue)
+            _G.ASTHETIC_WalkSpeed.Enable()
         end
     else
         WalkSpeedCheckButton.BackgroundColor3 = Color3.fromRGB(28, 29, 39)
         WalkSpeedStroke.Color = Color3.fromRGB(200, 200, 220)
-        if _G.YOKUDO_WalkSpeed then
-            _G.YOKUDO_WalkSpeed.Disable()
+        if _G.ASTHETIC_WalkSpeed then
+            _G.ASTHETIC_WalkSpeed.Disable()
         end
     end
 end
@@ -366,8 +366,8 @@ WalkSpeedTextBox.FocusLost:Connect(function()
     if val then
         WalkSpeedValue = math.clamp(val, 50, 1000)
         WalkSpeedTextBox.Text = tostring(WalkSpeedValue)
-        if WalkSpeedEnabled and _G.YOKUDO_WalkSpeed then
-            _G.YOKUDO_WalkSpeed.SetValue(WalkSpeedValue)
+        if WalkSpeedEnabled and _G.ASTHETIC_WalkSpeed then
+            _G.ASTHETIC_WalkSpeed.SetValue(WalkSpeedValue)
         end
     else
         WalkSpeedTextBox.Text = tostring(WalkSpeedValue)
@@ -442,14 +442,14 @@ local function ToggleAntiTrap()
     if AntiTrapEnabled then
         AntiTrapCheckButton.BackgroundColor3 = Color3.fromRGB(105, 90, 190)
         AntiTrapStroke.Color = Color3.fromRGB(135, 120, 225)
-        if _G.YOKUDO_AntiTrap then
-            _G.YOKUDO_AntiTrap.Enable()
+        if _G.ASTHETIC_AntiTrap then
+            _G.ASTHETIC_AntiTrap.Enable()
         end
     else
         AntiTrapCheckButton.BackgroundColor3 = Color3.fromRGB(28, 29, 39)
         AntiTrapStroke.Color = Color3.fromRGB(200, 200, 220)
-        if _G.YOKUDO_AntiTrap then
-            _G.YOKUDO_AntiTrap.Disable()
+        if _G.ASTHETIC_AntiTrap then
+            _G.ASTHETIC_AntiTrap.Disable()
         end
     end
 end
@@ -531,7 +531,7 @@ local function ShowNotification(Text)
     local PlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
     local NotifyGui = Instance.new("ScreenGui")
-    NotifyGui.Name = "YokudoNotify"
+    NotifyGui.Name = "AstheticNotify"
     NotifyGui.ResetOnSpawn = false
     NotifyGui.DisplayOrder = 999
     NotifyGui.Parent = PlayerGui
@@ -602,8 +602,8 @@ GodModeButton.MouseButton1Up:Connect(function()
 end)
 
 GodModeButton.MouseButton1Click:Connect(function()
-    if _G.YOKUDO_GodMode then
-        _G.YOKUDO_GodMode.Enable()
+    if _G.ASTHETIC_GodMode then
+        _G.ASTHETIC_GodMode.Enable()
     end
     ShowNotification("God Mode Start")
 end)
@@ -689,25 +689,25 @@ FastClickButton.MouseButton1Up:Connect(function()
 end)
 
 FastClickButton.MouseButton1Click:Connect(function()
-    if not _G.YOKUDO_ManualFastClick then
-        warn("[YOKUDO] ManualFastClick feature not loaded")
+    if not _G.ASTHETIC_ManualFastClick then
+        warn("[ASTHETIC] ManualFastClick feature not loaded")
         ShowNotification("Manual Fast Click Not Loaded")
         return
     end
 
-    if _G.YOKUDO_ManualFastClick.IsEnabled() then
-        _G.YOKUDO_ManualFastClick.Disable()
+    if _G.ASTHETIC_ManualFastClick.IsEnabled() then
+        _G.ASTHETIC_ManualFastClick.Disable()
         ShowNotification("Manual Fast Click Stop")
     else
-        _G.YOKUDO_ManualFastClick.Enable()
+        _G.ASTHETIC_ManualFastClick.Enable()
         ShowNotification("Manual Fast Click Start")
     end
 end)
 
 task.spawn(function()
     task.wait(0.5)
-    if _G.YOKUDO_ManualFastClick then
-        if _G.YOKUDO_ManualFastClick.IsEnabled() then
+    if _G.ASTHETIC_ManualFastClick then
+        if _G.ASTHETIC_ManualFastClick.IsEnabled() then
             FastClickButton.Text = "Stop"
         else
             FastClickButton.Text = "Click"
@@ -783,14 +783,14 @@ local function ToggleAntiAFK()
     if AntiAFKEnabled then
         AntiAFKCheckButton.BackgroundColor3 = Color3.fromRGB(105, 90, 190)
         AntiAFKStroke.Color = Color3.fromRGB(135, 120, 225)
-        if _G.YOKUDO_AntiAFK then
-            _G.YOKUDO_AntiAFK.Enable()
+        if _G.ASTHETIC_AntiAFK then
+            _G.ASTHETIC_AntiAFK.Enable()
         end
     else
         AntiAFKCheckButton.BackgroundColor3 = Color3.fromRGB(28, 29, 39)
         AntiAFKStroke.Color = Color3.fromRGB(200, 200, 220)
-        if _G.YOKUDO_AntiAFK then
-            _G.YOKUDO_AntiAFK.Disable()
+        if _G.ASTHETIC_AntiAFK then
+            _G.ASTHETIC_AntiAFK.Disable()
         end
     end
 end
@@ -806,19 +806,19 @@ task.spawn(function()
     task.wait(0.5)
 
     -- ✅ Sync Dropdown
-    if _G.YOKUDO_SelectedMethod then
-        SelectedMethod = _G.YOKUDO_SelectedMethod
+    if _G.ASTHETIC_SelectedMethod then
+        SelectedMethod = _G.ASTHETIC_SelectedMethod
         DropdownBtn.Text = SelectedMethod .. " ▼"
     end
 
     -- ✅ Sync Speed
-    if _G.YOKUDO_TeleportSpeed then
-        SpeedTextBox.Text = tostring(_G.YOKUDO_TeleportSpeed)
+    if _G.ASTHETIC_TeleportSpeed then
+        SpeedTextBox.Text = tostring(_G.ASTHETIC_TeleportSpeed)
     end
 
     -- ✅ Sync Anti AFK
-    if _G.YOKUDO_AntiAFK then
-        if _G.YOKUDO_AntiAFK.IsEnabled() then
+    if _G.ASTHETIC_AntiAFK then
+        if _G.ASTHETIC_AntiAFK.IsEnabled() then
             AntiAFKEnabled = true
             AntiAFKCheck.Visible = true
             AntiAFKCheckButton.BackgroundColor3 = Color3.fromRGB(105, 90, 190)

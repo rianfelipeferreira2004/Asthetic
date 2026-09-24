@@ -1,5 +1,5 @@
 -- ==================================================
--- YOKUDO HUB | FEATURE | God Mode
+-- ASTHETIC HUB | FEATURE | God Mode
 -- Humanoid Replace + Anti Death
 -- ==================================================
 
@@ -24,12 +24,12 @@ local function RunGodMode()
 
     local OldHumanoid = Character:FindFirstChildOfClass("Humanoid")
     if not OldHumanoid then
-        warn("[YOKUDO] Humanoid not found")
+        warn("[ASTHETIC] Humanoid not found")
         return
     end
 
     print("========================================")
-    print("[YOKUDO] START HUMANOID REPLACE")
+    print("[ASTHETIC] START HUMANOID REPLACE")
     print("========================================")
 
     -- SAVE JUMP PROPERTIES
@@ -87,7 +87,7 @@ local function RunGodMode()
     -- CLONE HUMANOID
     local NewHumanoid = OldHumanoid:Clone()
     if not NewHumanoid then
-        warn("[YOKUDO] Failed to clone Humanoid")
+        warn("[ASTHETIC] Failed to clone Humanoid")
         return
     end
     NewHumanoid.Name = OldHumanoid.Name
@@ -112,11 +112,11 @@ local function RunGodMode()
     task.wait()
 
     if not NewHumanoid.Parent then
-        warn("[YOKUDO] New Humanoid was removed")
+        warn("[ASTHETIC] New Humanoid was removed")
         return
     end
 
-    print("[YOKUDO] New Humanoid:", NewHumanoid)
+    print("[ASTHETIC] New Humanoid:", NewHumanoid)
 
     -- RESTORE JUMP PROPERTIES
     pcall(function()
@@ -149,12 +149,12 @@ local function RunGodMode()
         Animator = Instance.new("Animator")
         Animator.Parent = NewHumanoid
     end
-    print("[YOKUDO] Animator:", Animator)
+    print("[ASTHETIC] Animator:", Animator)
 
     -- RESTART ANIMATE
     local Animate = Character:FindFirstChild("Animate")
     if Animate then
-        print("[YOKUDO] Restarting Animate...")
+        print("[ASTHETIC] Restarting Animate...")
         pcall(function()
             Animate.Disabled = true
         end)
@@ -162,7 +162,7 @@ local function RunGodMode()
         pcall(function()
             Animate.Disabled = false
         end)
-        print("[YOKUDO] Animate restarted")
+        print("[ASTHETIC] Animate restarted")
     end
 
     task.wait(0.15)
@@ -328,7 +328,7 @@ local function RunGodMode()
     end)
 
     print("========================================")
-    print("[YOKUDO] HUMANOID REPLACE + ANTI DEATH COMPLETE")
+    print("[ASTHETIC] HUMANOID REPLACE + ANTI DEATH COMPLETE")
     print("========================================")
 end
 
@@ -338,7 +338,7 @@ end
 local function EnableGodMode()
     GodModeEnabled = true
     task.spawn(RunGodMode)
-    print("[YOKUDO] God Mode: ON")
+    print("[ASTHETIC] God Mode: ON")
 end
 
 local function DisableGodMode()
@@ -347,7 +347,7 @@ local function DisableGodMode()
         GodModeConnection:Disconnect()
         GodModeConnection = nil
     end
-    print("[YOKUDO] God Mode: OFF")
+    print("[ASTHETIC] God Mode: OFF")
 end
 
 local function ToggleGodMode()
@@ -361,7 +361,7 @@ end
 -- ==================================================
 -- EXPORT
 -- ==================================================
-_G.YOKUDO_GodMode = {
+_G.ASTHETIC_GodMode = {
     Toggle = ToggleGodMode,
     Enable = EnableGodMode,
     Disable = DisableGodMode,

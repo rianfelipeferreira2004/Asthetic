@@ -1,5 +1,5 @@
 -- ==================================================
--- YOKUDO HUB | FEATURE | Auto Attack
+-- ASTHETIC HUB | FEATURE | Auto Attack
 -- Auto Equip Bat + Auto Fire Remote (Range 17 + Fast)
 -- ✅ Register ជាមួយ CharacterSystem
 -- ==================================================
@@ -111,7 +111,7 @@ local function EnableAutoEquip()
         end
     end)
     EquipBat()
-    print("[YOKUDO] Auto Equip Bat: ON")
+    print("[ASTHETIC] Auto Equip Bat: ON")
 end
 
 local function DisableAutoEquip()
@@ -121,7 +121,7 @@ local function DisableAutoEquip()
         EquipConnection:Disconnect()
         EquipConnection = nil
     end
-    print("[YOKUDO] Auto Equip Bat: OFF")
+    print("[ASTHETIC] Auto Equip Bat: OFF")
 end
 
 local function ToggleAutoEquip()
@@ -186,7 +186,7 @@ local function EnableAutoHit()
         LastFire = now
         FireRemote()
     end)
-    print("[YOKUDO] Auto Fire Remote (Range 17 + Fast): ON")
+    print("[ASTHETIC] Auto Fire Remote (Range 17 + Fast): ON")
 end
 
 local function DisableAutoHit()
@@ -196,7 +196,7 @@ local function DisableAutoHit()
         HitConnection:Disconnect()
         HitConnection = nil
     end
-    print("[YOKUDO] Auto Fire Remote: OFF")
+    print("[ASTHETIC] Auto Fire Remote: OFF")
 end
 
 local function ToggleAutoHit()
@@ -206,7 +206,7 @@ end
 -- ==================================================
 -- EXPORT
 -- ==================================================
-_G.YOKUDO_AutoAttack = {
+_G.ASTHETIC_AutoAttack = {
     ToggleAutoEquip = ToggleAutoEquip,
     EnableAutoEquip = EnableAutoEquip,
     DisableAutoEquip = DisableAutoEquip,

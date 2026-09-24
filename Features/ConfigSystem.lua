@@ -1,15 +1,15 @@
 --==================================================
--- YOKUDO HUB - CONFIG SYSTEM
+-- ASTHETIC HUB - CONFIG SYSTEM
 -- Save/Load: SelectedMethod + TeleportSpeed
--- Folder: YOKUDO-SAE
--- File: yokudo.json
+-- Folder: ASTHETIC-SAE
+-- File: asthetic.json
 -- ✅ ដក AttackDroneEnabled ចេញ
 --==================================================
 
 local HttpService = game:GetService("HttpService")
 
-local CONFIG_FOLDER = "YOKUDO-SAE"
-local CONFIG_FILE = CONFIG_FOLDER .. "/yokudo.json"
+local CONFIG_FOLDER = "ASTHETIC-SAE"
+local CONFIG_FILE = CONFIG_FOLDER .. "/asthetic.json"
 
 --==================================================
 -- DEFAULT CONFIG
@@ -50,7 +50,7 @@ local function LoadConfig()
     local Config = table.clone(DefaultConfig)
 
     if not FileExists(CONFIG_FILE) then
-        print("[YOKUDO] Config not found. Using default.")
+        print("[ASTHETIC] Config not found. Using default.")
         return Config
     end
 
@@ -59,7 +59,7 @@ local function LoadConfig()
     end)
 
     if not Success or not RawData or RawData == "" then
-        print("[YOKUDO] Failed to read config. Using default.")
+        print("[ASTHETIC] Failed to read config. Using default.")
         return Config
     end
 
@@ -68,7 +68,7 @@ local function LoadConfig()
     end)
 
     if not DecodeSuccess or type(DecodedData) ~= "table" then
-        print("[YOKUDO] Failed to decode config. Using default.")
+        print("[ASTHETIC] Failed to decode config. Using default.")
         return Config
     end
 
@@ -82,7 +82,7 @@ local function LoadConfig()
         Config.TeleportSpeed = math.clamp(DecodedData.TeleportSpeed, 50, 1100)
     end
 
-    print("[YOKUDO] Config Loaded | Method: " .. Config.SelectedMethod .. " | Speed: " .. tostring(Config.TeleportSpeed))
+    print("[ASTHETIC] Config Loaded | Method: " .. Config.SelectedMethod .. " | Speed: " .. tostring(Config.TeleportSpeed))
 
     return Config
 end
@@ -104,7 +104,7 @@ local function SaveConfig(Config)
     end)
 
     if not EncodeSuccess then
-        warn("[YOKUDO] Failed to encode config")
+        warn("[ASTHETIC] Failed to encode config")
         return false
     end
 
@@ -113,10 +113,10 @@ local function SaveConfig(Config)
     end)
 
     if WriteSuccess then
-        print("[YOKUDO] Config Saved | Method: " .. DataToSave.SelectedMethod .. " | Speed: " .. tostring(DataToSave.TeleportSpeed))
+        print("[ASTHETIC] Config Saved | Method: " .. DataToSave.SelectedMethod .. " | Speed: " .. tostring(DataToSave.TeleportSpeed))
         return true
     else
-        warn("[YOKUDO] Failed to write config")
+        warn("[ASTHETIC] Failed to write config")
         return false
     end
 end
@@ -126,8 +126,8 @@ end
 --==================================================
 
 local function ApplyConfig(Config)
-    _G.YOKUDO_SelectedMethod = Config.SelectedMethod
-    _G.YOKUDO_TeleportSpeed = Config.TeleportSpeed
+    _G.ASTHETIC_SelectedMethod = Config.SelectedMethod
+    _G.ASTHETIC_TeleportSpeed = Config.TeleportSpeed
 end
 
 --==================================================
@@ -141,7 +141,7 @@ ApplyConfig(LoadedConfig)
 -- EXPORT
 --==================================================
 
-_G.YOKUDO_ConfigSystem = {
+_G.ASTHETIC_ConfigSystem = {
     Folder = CONFIG_FOLDER,
     File = CONFIG_FILE,
     Default = DefaultConfig,
@@ -154,8 +154,8 @@ _G.YOKUDO_ConfigSystem = {
             task.wait(0.5)
 
             -- ✅ Update Setting Tab UI
-            if _G.YOKUDO_RefreshSettingUI then
-                _G.YOKUDO_RefreshSettingUI()
+            if _G.ASTHETIC_RefreshSettingUI then
+                _G.ASTHETIC_RefreshSettingUI()
             end
         end)
 
@@ -164,16 +164,16 @@ _G.YOKUDO_ConfigSystem = {
 
     Save = function()
         local Config = {
-            SelectedMethod = _G.YOKUDO_SelectedMethod or DefaultConfig.SelectedMethod,
-            TeleportSpeed = _G.YOKUDO_TeleportSpeed or DefaultConfig.TeleportSpeed
+            SelectedMethod = _G.ASTHETIC_SelectedMethod or DefaultConfig.SelectedMethod,
+            TeleportSpeed = _G.ASTHETIC_TeleportSpeed or DefaultConfig.TeleportSpeed
         }
         return SaveConfig(Config)
     end,
 
     Get = function()
         return {
-            SelectedMethod = _G.YOKUDO_SelectedMethod or DefaultConfig.SelectedMethod,
-            TeleportSpeed = _G.YOKUDO_TeleportSpeed or DefaultConfig.TeleportSpeed
+            SelectedMethod = _G.ASTHETIC_SelectedMethod or DefaultConfig.SelectedMethod,
+            TeleportSpeed = _G.ASTHETIC_TeleportSpeed or DefaultConfig.TeleportSpeed
         }
     end,
 

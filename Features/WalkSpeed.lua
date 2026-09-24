@@ -1,5 +1,5 @@
 -- ==================================================
--- YOKUDO HUB | FEATURE | Walk Speed
+-- ASTHETIC HUB | FEATURE | Walk Speed
 -- ✅ Register ជាមួយ CharacterSystem
 -- ==================================================
 
@@ -79,7 +79,7 @@ local function SetWalkSpeedValue(Value)
     if WalkSpeedEnabled then
         ApplyWalkSpeed()
     end
-    print("[YOKUDO] Walk Speed Value: " .. WalkSpeedValue)
+    print("[ASTHETIC] Walk Speed Value: " .. WalkSpeedValue)
 end
 
 -- ==================================================
@@ -90,10 +90,10 @@ local function ToggleWalkSpeed()
     
     if WalkSpeedEnabled then
         StartWalkSpeed()
-        print("[YOKUDO] Walk Speed: ON (" .. WalkSpeedValue .. ")")
+        print("[ASTHETIC] Walk Speed: ON (" .. WalkSpeedValue .. ")")
     else
         StopWalkSpeed()
-        print("[YOKUDO] Walk Speed: OFF")
+        print("[ASTHETIC] Walk Speed: OFF")
     end
 end
 
@@ -103,19 +103,19 @@ end
 local function EnableWalkSpeed()
     WalkSpeedEnabled = true
     StartWalkSpeed()
-    print("[YOKUDO] Walk Speed: ON (" .. WalkSpeedValue .. ")")
+    print("[ASTHETIC] Walk Speed: ON (" .. WalkSpeedValue .. ")")
 end
 
 local function DisableWalkSpeed()
     WalkSpeedEnabled = false
     StopWalkSpeed()
-    print("[YOKUDO] Walk Speed: OFF")
+    print("[ASTHETIC] Walk Speed: OFF")
 end
 
 -- ==================================================
 -- EXPORT
 -- ==================================================
-_G.YOKUDO_WalkSpeed = {
+_G.ASTHETIC_WalkSpeed = {
     Toggle = ToggleWalkSpeed,
     Enable = EnableWalkSpeed,
     Disable = DisableWalkSpeed,

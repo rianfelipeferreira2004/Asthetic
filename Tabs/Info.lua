@@ -1,8 +1,8 @@
 --==================================================
--- YOKUDO HUB | TAB | Info
+-- ASTHETIC HUB | TAB | Info
 --==================================================
 
-local TabsManager = _G.YOKUDO_TabsManager
+local TabsManager = _G.ASTHETIC_TabsManager
 local TweenService = game:GetService("TweenService")
 
 local InfoTab, InfoPage = TabsManager:RegisterTab("Info", 1, "INFO")
@@ -10,7 +10,7 @@ local InfoTab, InfoPage = TabsManager:RegisterTab("Info", 1, "INFO")
 --==================================================
 -- INFO CONTENT
 --==================================================
-CreateSectionTitle(InfoPage, "YOKUDO HUB | Steal An Egg", 1)
+CreateSectionTitle(InfoPage, "ASTHETIC HUB | Steal An Egg", 1)
 
 --==================================================
 -- TITLE: Join Group For Notification Update Script
@@ -115,7 +115,7 @@ local function CopyDiscord()
             CopyBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
         end)
 
-        print("[YOKUDO] Discord Link Copied: " .. DISCORD_LINK)
+        print("[ASTHETIC] Discord Link Copied: " .. DISCORD_LINK)
     else
         CopyBtn.Text = "FAILED!"
         CopyBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
@@ -125,7 +125,7 @@ local function CopyDiscord()
             CopyBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
         end)
 
-        warn("[YOKUDO] Failed to copy Discord link")
+        warn("[ASTHETIC] Failed to copy Discord link")
     end
 end
 

@@ -1,5 +1,5 @@
 -- ==================================================
--- YOKUDO HUB | NEW PROJECT | Components
+-- ASTHETIC HUB | NEW PROJECT | Components
 -- ==================================================
 
 local TweenService = game:GetService("TweenService")
@@ -20,7 +20,7 @@ end
 -- CREATE TAB
 -- ==================================================
 function CreateTab(Name, Order)
-    local TabScroll = _G.YOKUDO_TabScroll
+    local TabScroll = _G.ASTHETIC_TabScroll
     local Tab = Instance.new("TextButton")
     Tab.Name = Name:gsub("%s+", "_") .. "_Tab"
     Tab.Size = UDim2.new(1, 0, 0, 32)
@@ -81,7 +81,7 @@ end
 -- CREATE PAGE
 -- ==================================================
 function CreatePage(Name)
-    local Content = _G.YOKUDO_Content
+    local Content = _G.ASTHETIC_Content
     local Page = Instance.new("ScrollingFrame")
     Page.Name = Name .. "_Page"
     Page.Size = UDim2.new(1, 0, 1, 0)

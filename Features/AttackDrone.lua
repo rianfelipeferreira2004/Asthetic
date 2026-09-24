@@ -1,5 +1,5 @@
 -- ==================================================
--- YOKUDO HUB | FEATURE | Attack Drone
+-- ASTHETIC HUB | FEATURE | Attack Drone
 -- Attack ONLY Top1 | Top2 | Top3
 -- ✅ Logic ចាស់ទាំងស្រុង — InitialFlyAndStartLoop (Signed X)
 -- ✅ Fly TP មិន Lock + Stop ភ្លាម + Reset CFrame
@@ -152,7 +152,7 @@ local function CleanupMovers()
     local Hum, Root = GetHumanoid()
     if Root then
         for _, Child in ipairs(Root:GetChildren()) do
-            if Child.Name == "YokudoBV" or Child.Name == "YokudoBG" then
+            if Child.Name == "AstheticBV" or Child.Name == "AstheticBG" then
                 pcall(function() Child:Destroy() end)
             end
         end
@@ -324,14 +324,14 @@ function StartFollow()
     Hum.PlatformStand = true
 
     BodyVelocity = Instance.new("BodyVelocity")
-    BodyVelocity.Name = "YokudoBV"
+    BodyVelocity.Name = "AstheticBV"
     BodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     BodyVelocity.P = 1250
     BodyVelocity.Velocity = Vector3.zero
     BodyVelocity.Parent = Root
 
     BodyGyro = Instance.new("BodyGyro")
-    BodyGyro.Name = "YokudoBG"
+    BodyGyro.Name = "AstheticBG"
     BodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     BodyGyro.P = 3000
     BodyGyro.D = 500
@@ -393,14 +393,14 @@ function FlyTPToPosition(Destination, Callback)
     Hum.PlatformStand = true
 
     BodyVelocity = Instance.new("BodyVelocity")
-    BodyVelocity.Name = "YokudoBV"
+    BodyVelocity.Name = "AstheticBV"
     BodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     BodyVelocity.P = 1250
     BodyVelocity.Velocity = Vector3.zero
     BodyVelocity.Parent = Root
 
     BodyGyro = Instance.new("BodyGyro")
-    BodyGyro.Name = "YokudoBG"
+    BodyGyro.Name = "AstheticBG"
     BodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     BodyGyro.P = 3000
     BodyGyro.D = 500
@@ -645,8 +645,8 @@ local function StartAttack()
 
     SaveLiveStats()
 
-    if _G.YOKUDO_AutoAttack then
-        _G.YOKUDO_AutoAttack.EnableAutoEquip()
+    if _G.ASTHETIC_AutoAttack then
+        _G.ASTHETIC_AutoAttack.EnableAutoEquip()
     end
 
     StartAttackLoop()
@@ -673,8 +673,8 @@ local function StopAttackDrone()
 
     RestoreLiveStats()
 
-    if _G.YOKUDO_AutoAttack then
-        _G.YOKUDO_AutoAttack.DisableAutoEquip()
+    if _G.ASTHETIC_AutoAttack then
+        _G.ASTHETIC_AutoAttack.DisableAutoEquip()
     end
 
     local Hum, Root = GetHumanoid()
@@ -691,7 +691,7 @@ end
 -- ==================================================
 -- EXPORT
 -- ==================================================
-_G.YOKUDO_AttackDrone = {
+_G.ASTHETIC_AttackDrone = {
     Start = StartAttack,
     Stop = StopAttackDrone,
     Enable = StartAttack,

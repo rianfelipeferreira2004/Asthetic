@@ -1,5 +1,5 @@
 --==================================================
--- YOKUDO HUB | FEATURE | Auto Farm
+-- ASTHETIC HUB | FEATURE | Auto Farm
 -- Check Egg + Display Card + Select + Send to Teleport
 -- ✅ Register ជាមួយ CharacterSystem
 --==================================================
@@ -180,12 +180,12 @@ end
 --==================================================
 local function EnableAutoFarm()
     AutoFarmEnabled = true
-    print("[YOKUDO] Auto Farm: ON")
+    print("[ASTHETIC] Auto Farm: ON")
 end
 
 local function DisableAutoFarm()
     AutoFarmEnabled = false
-    print("[YOKUDO] Auto Farm: OFF")
+    print("[ASTHETIC] Auto Farm: OFF")
 end
 
 --==================================================
@@ -193,7 +193,7 @@ end
 --==================================================
 local function SelectEgg(EggData)
     SelectedEgg = EggData
-    print("[YOKUDO] Selected Egg: " .. EggData.DisplayName .. " ($" .. FormatMoney(EggData.EarningRate) .. "/s)")
+    print("[ASTHETIC] Selected Egg: " .. EggData.DisplayName .. " ($" .. FormatMoney(EggData.EarningRate) .. "/s)")
 end
 
 --==================================================
@@ -201,20 +201,20 @@ end
 --==================================================
 local function StartTeleport()
     if not SelectedEgg then
-        warn("[YOKUDO] No Egg Selected")
+        warn("[ASTHETIC] No Egg Selected")
         return
     end
 
-    local Method = _G.YOKUDO_SelectedMethod or "TeleportFly"
-    local Speed = _G.YOKUDO_TeleportSpeed or 300
+    local Method = _G.ASTHETIC_SelectedMethod or "TeleportFly"
+    local Speed = _G.ASTHETIC_TeleportSpeed or 300
 
-    print("[YOKUDO] Start Teleport | Method: " .. Method .. " | Speed: " .. tostring(Speed) .. " | Target: " .. SelectedEgg.Id)
+    print("[ASTHETIC] Start Teleport | Method: " .. Method .. " | Speed: " .. tostring(Speed) .. " | Target: " .. SelectedEgg.Id)
 
-    if _G.YOKUDO_TeleportSystem then
-        _G.YOKUDO_TeleportSystem.SetMethod(Method)
-        _G.YOKUDO_TeleportSystem.SetSpeed(Speed)
-        _G.YOKUDO_TeleportSystem.SetTargetId(SelectedEgg.Id)
-        _G.YOKUDO_TeleportSystem.Enable()
+    if _G.ASTHETIC_TeleportSystem then
+        _G.ASTHETIC_TeleportSystem.SetMethod(Method)
+        _G.ASTHETIC_TeleportSystem.SetSpeed(Speed)
+        _G.ASTHETIC_TeleportSystem.SetTargetId(SelectedEgg.Id)
+        _G.ASTHETIC_TeleportSystem.Enable()
     end
 end
 
@@ -222,16 +222,16 @@ end
 -- STOP TELEPORT (Called on Stop button)
 --==================================================
 local function StopTeleport()
-    if _G.YOKUDO_TeleportSystem then
-        _G.YOKUDO_TeleportSystem.Disable()
+    if _G.ASTHETIC_TeleportSystem then
+        _G.ASTHETIC_TeleportSystem.Disable()
     end
-    print("[YOKUDO] Stop Teleport")
+    print("[ASTHETIC] Stop Teleport")
 end
 
 --==================================================
 -- EXPORT
 --==================================================
-_G.YOKUDO_AutoFarm = {
+_G.ASTHETIC_AutoFarm = {
     Enable = EnableAutoFarm,
     Disable = DisableAutoFarm,
     IsEnabled = function() return AutoFarmEnabled end,

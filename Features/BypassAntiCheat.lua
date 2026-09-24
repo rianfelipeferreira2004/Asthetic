@@ -1,5 +1,5 @@
 -- ==================================================
--- YOKUDO HUB | FEATURE | Bypass Anti Cheat
+-- ASTHETIC HUB | FEATURE | Bypass Anti Cheat
 -- Humanoid Replace + Anti Death
 -- ✅ Restart Features តាមរយៈ CharacterSystem
 -- ❌ លុប Auto Re-run ចេញ
@@ -18,12 +18,12 @@ local function RunBypassAntiCheat()
 
     local OldHumanoid = Character:FindFirstChildOfClass("Humanoid")
     if not OldHumanoid then
-        warn("[YOKUDO] Humanoid not found")
+        warn("[ASTHETIC] Humanoid not found")
         return
     end
 
     print("========================================")
-    print("[YOKUDO] START HUMANOID REPLACE")
+    print("[ASTHETIC] START HUMANOID REPLACE")
     print("========================================")
 
     --==================================================
@@ -94,7 +94,7 @@ local function RunBypassAntiCheat()
     --==================================================
     local NewHumanoid = OldHumanoid:Clone()
     if not NewHumanoid then
-        warn("[YOKUDO] Failed to clone Humanoid")
+        warn("[ASTHETIC] Failed to clone Humanoid")
         return
     end
     NewHumanoid.Name = OldHumanoid.Name
@@ -123,19 +123,19 @@ local function RunBypassAntiCheat()
     task.wait()
 
     if not NewHumanoid.Parent then
-        warn("[YOKUDO] New Humanoid was removed")
+        warn("[ASTHETIC] New Humanoid was removed")
         return
     end
 
-    print("[YOKUDO] New Humanoid:", NewHumanoid)
+    print("[ASTHETIC] New Humanoid:", NewHumanoid)
 
     --==================================================
     -- UPDATE CHARACTER SYSTEM
     --==================================================
-    if _G.YOKUDO_CharacterSystem then
-        _G.YOKUDO_CharacterSystem.CurrentHumanoid = NewHumanoid
-        _G.YOKUDO_CharacterSystem.CurrentRoot = Character:FindFirstChild("HumanoidRootPart")
-        print("[YOKUDO] CharacterSystem Updated with New Humanoid")
+    if _G.ASTHETIC_CharacterSystem then
+        _G.ASTHETIC_CharacterSystem.CurrentHumanoid = NewHumanoid
+        _G.ASTHETIC_CharacterSystem.CurrentRoot = Character:FindFirstChild("HumanoidRootPart")
+        print("[ASTHETIC] CharacterSystem Updated with New Humanoid")
     end
 
     --==================================================
@@ -177,14 +177,14 @@ local function RunBypassAntiCheat()
         Animator = Instance.new("Animator")
         Animator.Parent = NewHumanoid
     end
-    print("[YOKUDO] Animator:", Animator)
+    print("[ASTHETIC] Animator:", Animator)
 
     --==================================================
     -- RESTART ANIMATE
     --==================================================
     local Animate = Character:FindFirstChild("Animate")
     if Animate then
-        print("[YOKUDO] Restarting Animate...")
+        print("[ASTHETIC] Restarting Animate...")
         pcall(function()
             Animate.Disabled = true
         end)
@@ -192,7 +192,7 @@ local function RunBypassAntiCheat()
         pcall(function()
             Animate.Disabled = false
         end)
-        print("[YOKUDO] Animate restarted")
+        print("[ASTHETIC] Animate restarted")
     end
 
     task.wait(0.15)
@@ -265,19 +265,19 @@ local function RunBypassAntiCheat()
     local function RefreshControls()
         local PlayerScripts = Player:FindFirstChild("PlayerScripts")
         if not PlayerScripts then
-            warn("[YOKUDO] PlayerScripts not found")
+            warn("[ASTHETIC] PlayerScripts not found")
             return
         end
         local PlayerModule = PlayerScripts:FindFirstChild("PlayerModule")
         if not PlayerModule then
-            warn("[YOKUDO] PlayerModule not found")
+            warn("[ASTHETIC] PlayerModule not found")
             return
         end
         local Success, Module = pcall(function()
             return require(PlayerModule)
         end)
         if not Success or not Module then
-            warn("[YOKUDO] Failed to require PlayerModule")
+            warn("[ASTHETIC] Failed to require PlayerModule")
             return
         end
         local Controls
@@ -285,7 +285,7 @@ local function RunBypassAntiCheat()
             Controls = Module:GetControls()
         end)
         if not Controls then
-            warn("[YOKUDO] Controls not found")
+            warn("[ASTHETIC] Controls not found")
             return
         end
         pcall(function()
@@ -296,8 +296,8 @@ local function RunBypassAntiCheat()
             Controls:UpdateActiveControlModuleEnabled()
         end)
         task.wait()
-        print("[YOKUDO] Controls Humanoid:", Controls.humanoid)
-        print("[YOKUDO] Same Humanoid:", Controls.humanoid == NewHumanoid)
+        print("[ASTHETIC] Controls Humanoid:", Controls.humanoid)
+        print("[ASTHETIC] Same Humanoid:", Controls.humanoid == NewHumanoid)
     end
 
     RefreshControls()
@@ -375,16 +375,16 @@ local function RunBypassAntiCheat()
     --==================================================
     -- ✅ RESTART FEATURES តាមរយៈ CHARACTER SYSTEM
     --==================================================
-    if _G.YOKUDO_CharacterSystem then
+    if _G.ASTHETIC_CharacterSystem then
         task.spawn(function()
             task.wait(0.5)
-            _G.YOKUDO_CharacterSystem:RestartAllFeatures()
+            _G.ASTHETIC_CharacterSystem:RestartAllFeatures()
         end)
     end
 
     print("")
     print("========================================")
-    print("[YOKUDO] HUMANOID REPLACE + ANTI DEATH COMPLETE")
+    print("[ASTHETIC] HUMANOID REPLACE + ANTI DEATH COMPLETE")
     print("========================================")
 end
 

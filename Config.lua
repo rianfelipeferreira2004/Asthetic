@@ -1,12 +1,12 @@
 -- ==================================================
--- YOKUDO HUB | NEW PROJECT | Config
+-- ASTHETIC HUB | NEW PROJECT | Config
 -- ==================================================
 
-_G.YOKUDO = {
+_G.ASTHETIC = {
     -- Hub Info
-    Name = "YOKUDO HUB | Steal An Egg",
+    Name = "ASTHETIC HUB | Steal An Egg",
     Version = "telegram : @maibigber",
-    Author = "Yokudo",
+    Author = "Asthetic",
 
     -- Asset
     AssetID = "rbxassetid://101352576986760",

@@ -1,5 +1,5 @@
 -- ==================================================
--- YOKUDO HUB | TABS MANAGER
+-- ASTHETIC HUB | TABS MANAGER
 -- ==================================================
 
 local TweenService = game:GetService("TweenService")
@@ -88,6 +88,6 @@ end
 -- ==================================================
 -- EXPORT
 -- ==================================================
-_G.YOKUDO_TabsManager = TabsManager
+_G.ASTHETIC_TabsManager = TabsManager
 
 print("✅ Tabs Manager Loaded")

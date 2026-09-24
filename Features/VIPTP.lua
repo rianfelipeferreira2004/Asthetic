@@ -1,5 +1,5 @@
 -- ==================================================
--- YOKUDO HUB | FEATURE | VIPTP (AFK Farm Only)
+-- ASTHETIC HUB | FEATURE | VIPTP (AFK Farm Only)
 -- ដាច់ដោយឡែកសម្រាប់ AFK Farm
 -- Speed កំណត់ក្នុង file ខ្លួនឯង
 -- Method: InstantTeleport (Fixed)
@@ -290,7 +290,7 @@ local function CleanupMovers()
     local Hum, Root = GetHumanoid()
     if Root then
         for _, Child in ipairs(Root:GetChildren()) do
-            if Child.Name == "YokudoBV" or Child.Name == "YokudoBG" then
+            if Child.Name == "AstheticBV" or Child.Name == "AstheticBG" then
                 pcall(function() Child:Destroy() end)
             end
         end
@@ -420,14 +420,14 @@ local function FlyTP(Destination, Speed, UseShotTP, IsSafeZone, Callback, LockAb
     Hum.PlatformStand = true
 
     BodyVelocity = Instance.new("BodyVelocity")
-    BodyVelocity.Name = "YokudoBV"
+    BodyVelocity.Name = "AstheticBV"
     BodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     BodyVelocity.P = 1250
     BodyVelocity.Velocity = Vector3.zero
     BodyVelocity.Parent = Root
 
     BodyGyro = Instance.new("BodyGyro")
-    BodyGyro.Name = "YokudoBG"
+    BodyGyro.Name = "AstheticBG"
     BodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     BodyGyro.P = 3000
     BodyGyro.D = 500
@@ -715,10 +715,10 @@ function AutoStop()
 
     StopStrikeLoop()
 
-    if _G.YOKUDO_FarmingManager and _G.YOKUDO_FarmingManager.OnVIPTPComplete then
+    if _G.ASTHETIC_FarmingManager and _G.ASTHETIC_FarmingManager.OnVIPTPComplete then
         task.spawn(function()
             task.wait(0.5)
-            _G.YOKUDO_FarmingManager.OnVIPTPComplete()
+            _G.ASTHETIC_FarmingManager.OnVIPTPComplete()
         end)
     end
 end
@@ -1194,7 +1194,7 @@ end
 -- ==================================================
 -- EXPORT
 -- ==================================================
-_G.YOKUDO_VIPTP = {
+_G.ASTHETIC_VIPTP = {
     Enable = Enable,
     Disable = Disable,
     SetTargetId = SetTargetId,

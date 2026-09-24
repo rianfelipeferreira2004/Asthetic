@@ -1,5 +1,5 @@
 -- ==================================================
--- YOKUDO HUB | FEATURE | Manual Fast Click
+-- ASTHETIC HUB | FEATURE | Manual Fast Click
 -- Enable Click Egg Fast by hand
 -- Set ProximityPrompt HoldDuration = 0
 -- ==================================================
@@ -84,7 +84,7 @@ local function EnableManualFastClick()
         end
     end)
 
-    print("[YOKUDO] Manual Fast Click: ON")
+    print("[ASTHETIC] Manual Fast Click: ON")
 end
 
 -- ==================================================
@@ -103,7 +103,7 @@ local function DisableManualFastClick()
         HeartbeatConnection = nil
     end
 
-    print("[YOKUDO] Manual Fast Click: OFF")
+    print("[ASTHETIC] Manual Fast Click: OFF")
 end
 
 -- ==================================================
@@ -120,7 +120,7 @@ end
 -- ==================================================
 -- EXPORT
 -- ==================================================
-_G.YOKUDO_ManualFastClick = {
+_G.ASTHETIC_ManualFastClick = {
     Enable = EnableManualFastClick,
     Disable = DisableManualFastClick,
     Toggle = ToggleManualFastClick,

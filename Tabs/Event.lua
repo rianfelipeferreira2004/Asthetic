@@ -1,10 +1,10 @@
 --==================================================
--- YOKUDO HUB | TAB | Event
+-- ASTHETIC HUB | TAB | Event
 -- Feature: Auto Attack Drone
 -- ✅ ដក Auto Save Config ចេញ (ManagerDrone មិនពាក់ព័ន្ធ Config)
 --==================================================
 
-local TabsManager = _G.YOKUDO_TabsManager
+local TabsManager = _G.ASTHETIC_TabsManager
 local TweenService = game:GetService("TweenService")
 
 local EventTab, EventPage = TabsManager:RegisterTab("Event", 5, "EVENT")
@@ -89,19 +89,19 @@ local function UpdateManagerUI(State)
 end
 
 ManagerButton.MouseButton1Click:Connect(function()
-    if not _G.YOKUDO_ManagerDrone then
-        warn("[YOKUDO] ManagerDrone not loaded!")
+    if not _G.ASTHETIC_ManagerDrone then
+        warn("[ASTHETIC] ManagerDrone not loaded!")
         return
     end
 
-    local NewState = not _G.YOKUDO_ManagerDrone.IsEnabled()
+    local NewState = not _G.ASTHETIC_ManagerDrone.IsEnabled()
     UpdateManagerUI(NewState)
 
     -- ✅ Call Enable/Disable (មិន Save Config)
     if NewState then
-        _G.YOKUDO_ManagerDrone.Enable()
+        _G.ASTHETIC_ManagerDrone.Enable()
     else
-        _G.YOKUDO_ManagerDrone.Disable()
+        _G.ASTHETIC_ManagerDrone.Disable()
     end
 end)
 
@@ -110,8 +110,8 @@ end)
 --==================================================
 task.spawn(function()
     task.wait(1)
-    if _G.YOKUDO_ManagerDrone then
-        local State = _G.YOKUDO_ManagerDrone.IsEnabled()
+    if _G.ASTHETIC_ManagerDrone then
+        local State = _G.ASTHETIC_ManagerDrone.IsEnabled()
         UpdateManagerUI(State)
     end
 end)
@@ -119,11 +119,11 @@ end)
 --==================================================
 -- ✅ REFRESH FUNCTION
 --==================================================
-_G.YOKUDO_RefreshEventUI = function()
-    if _G.YOKUDO_ManagerDrone then
-        local State = _G.YOKUDO_ManagerDrone.IsEnabled()
+_G.ASTHETIC_RefreshEventUI = function()
+    if _G.ASTHETIC_ManagerDrone then
+        local State = _G.ASTHETIC_ManagerDrone.IsEnabled()
         UpdateManagerUI(State)
-        print("[YOKUDO] Event Tab UI Refreshed | State: " .. tostring(State))
+        print("[ASTHETIC] Event Tab UI Refreshed | State: " .. tostring(State))
     end
 end
 
@@ -142,15 +142,15 @@ StatusLabel.LayoutOrder = 3
 StatusLabel.Parent = EventPage
 
 local function UpdateStatusLabel()
-    if not _G.YOKUDO_ManagerDrone then
+    if not _G.ASTHETIC_ManagerDrone then
         StatusLabel.Text = "Status: ManagerDrone não carregado!"
         return
     end
     local ok, sec, txt, active = pcall(function()
-        if _G.YOKUDO_ManagerDrone.GetLastEvent then
-            return _G.YOKUDO_ManagerDrone.GetLastEvent()
+        if _G.ASTHETIC_ManagerDrone.GetLastEvent then
+            return _G.ASTHETIC_ManagerDrone.GetLastEvent()
         else
-            local s, t, a = _G.YOKUDO_ManagerDrone.GetEventInfo()
+            local s, t, a = _G.ASTHETIC_ManagerDrone.GetEventInfo()
             return s, t, a
         end
     end)
@@ -173,13 +173,13 @@ end
 task.spawn(function()
     while task.wait(0.5) do
         if not ManagerHolder.Parent then break end
-        if _G.YOKUDO_ManagerDrone then
-            local CurrentState = _G.YOKUDO_ManagerDrone.IsEnabled()
+        if _G.ASTHETIC_ManagerDrone then
+            local CurrentState = _G.ASTHETIC_ManagerDrone.IsEnabled()
             local UIState = ManagerCheck.Visible
 
             if CurrentState ~= UIState then
                 UpdateManagerUI(CurrentState)
-                print("[YOKUDO] Event UI Sync | State: " .. tostring(CurrentState))
+                print("[ASTHETIC] Event UI Sync | State: " .. tostring(CurrentState))
             end
             pcall(UpdateStatusLabel)
         else

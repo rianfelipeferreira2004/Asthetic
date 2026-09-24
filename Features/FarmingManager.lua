@@ -1,5 +1,5 @@
 -- ==================================================
--- YOKUDO HUB | FEATURE | Farming Manager (NEW)
+-- ASTHETIC HUB | FEATURE | Farming Manager (NEW)
 -- បញ្ចូល Egg Check Logic ពី EggCheckPremium
 -- គ្រប់គ្រង Day/Night
 -- ហៅ AFKSystem ពេលអត់ឃើញ Egg
@@ -257,14 +257,14 @@ local function SelfFlyTP(Destination, Speed, Callback)
     Hum.PlatformStand = true
 
     BodyVelocity = Instance.new("BodyVelocity")
-    BodyVelocity.Name = "YokudoBV"
+    BodyVelocity.Name = "AstheticBV"
     BodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     BodyVelocity.P = 1250
     BodyVelocity.Velocity = Vector3.zero
     BodyVelocity.Parent = Root
 
     BodyGyro = Instance.new("BodyGyro")
-    BodyGyro.Name = "YokudoBG"
+    BodyGyro.Name = "AstheticBG"
     BodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     BodyGyro.P = 3000
     BodyGyro.D = 500
@@ -351,34 +351,34 @@ end
 -- STOP ALL
 -- ==================================================
 local function StopAll()
-    if _G.YOKUDO_AFKSystem and _G.YOKUDO_AFKSystem.IsEnabled() then
-        local TreadmillPos = _G.YOKUDO_AFKSystem.GetMyTreadmillPos()
+    if _G.ASTHETIC_AFKSystem and _G.ASTHETIC_AFKSystem.IsEnabled() then
+        local TreadmillPos = _G.ASTHETIC_AFKSystem.GetMyTreadmillPos()
         if not TreadmillPos then
-            local _, Treadmill = _G.YOKUDO_AFKSystem.FindMyPlotAndTreadmill()
+            local _, Treadmill = _G.ASTHETIC_AFKSystem.FindMyPlotAndTreadmill()
             if Treadmill then
                 TreadmillPos = Treadmill.Position
             end
         end
 
         if TreadmillPos then
-            _G.YOKUDO_AFKSystem.JumpOutTreadmill(TreadmillPos, function()
-                _G.YOKUDO_AFKSystem.Disable()
+            _G.ASTHETIC_AFKSystem.JumpOutTreadmill(TreadmillPos, function()
+                _G.ASTHETIC_AFKSystem.Disable()
                 AFKStarted = false
                 print("[FarmingManager] ✅ AFK Stopped + Jumped out!")
             end)
         else
-            _G.YOKUDO_AFKSystem.Disable()
+            _G.ASTHETIC_AFKSystem.Disable()
             AFKStarted = false
         end
     end
 
-    if _G.YOKUDO_VIPTP and _G.YOKUDO_VIPTP.IsEnabled() then
-        _G.YOKUDO_VIPTP.Disable()
+    if _G.ASTHETIC_VIPTP and _G.ASTHETIC_VIPTP.IsEnabled() then
+        _G.ASTHETIC_VIPTP.Disable()
         print("[FarmingManager] ✅ VIPTP Stopped")
     end
 
-    if _G.YOKUDO_TeleportSystem and _G.YOKUDO_TeleportSystem.IsEnabled() then
-        _G.YOKUDO_TeleportSystem.Disable()
+    if _G.ASTHETIC_TeleportSystem and _G.ASTHETIC_TeleportSystem.IsEnabled() then
+        _G.ASTHETIC_TeleportSystem.Disable()
         print("[FarmingManager] ✅ TeleportSystem Stopped")
     end
 
@@ -427,7 +427,7 @@ end
 -- START VIPTP
 -- ==================================================
 local function StartVIPTP(EggUid)
-    if not _G.YOKUDO_VIPTP then
+    if not _G.ASTHETIC_VIPTP then
         warn("[FarmingManager] VIPTP not loaded!")
         return
     end
@@ -436,8 +436,8 @@ local function StartVIPTP(EggUid)
     print("  - Target UID: " .. tostring(EggUid))
 
     WaitingForVIPTP = true
-    _G.YOKUDO_VIPTP.SetTargetId(EggUid)
-    _G.YOKUDO_VIPTP.Enable()
+    _G.ASTHETIC_VIPTP.SetTargetId(EggUid)
+    _G.ASTHETIC_VIPTP.Enable()
 end
 
 -- ==================================================
@@ -468,8 +468,8 @@ local function OnVIPTPComplete()
         end)
     else
         print("[FarmingManager] No New Egg → AFK")
-        if _G.YOKUDO_AFKSystem and not _G.YOKUDO_AFKSystem.IsEnabled() then
-            _G.YOKUDO_AFKSystem.Enable()
+        if _G.ASTHETIC_AFKSystem and not _G.ASTHETIC_AFKSystem.IsEnabled() then
+            _G.ASTHETIC_AFKSystem.Enable()
             AFKStarted = true
         end
     end
@@ -544,8 +544,8 @@ local function NightLoop()
             return
         else
             if not AFKStarted then
-                if _G.YOKUDO_AFKSystem and not _G.YOKUDO_AFKSystem.IsEnabled() then
-                    _G.YOKUDO_AFKSystem.Enable()
+                if _G.ASTHETIC_AFKSystem and not _G.ASTHETIC_AFKSystem.IsEnabled() then
+                    _G.ASTHETIC_AFKSystem.Enable()
                     AFKStarted = true
                     print("[FarmingManager] AFK Started (No Egg)")
                 end
@@ -589,8 +589,8 @@ local function DayLoop()
                 task.wait(0.5)
             end
         else
-            if _G.YOKUDO_AFKSystem and not _G.YOKUDO_AFKSystem.IsEnabled() then
-                _G.YOKUDO_AFKSystem.Enable()
+            if _G.ASTHETIC_AFKSystem and not _G.ASTHETIC_AFKSystem.IsEnabled() then
+                _G.ASTHETIC_AFKSystem.Enable()
                 AFKStarted = true
                 print("[FarmingManager] AFK Started (No Egg)")
             end
@@ -640,7 +640,7 @@ local function Enable()
     end
     FarmingThread = task.spawn(function() MainLoop() end)
 
-    print("[YOKUDO] FarmingManager: ON")
+    print("[ASTHETIC] FarmingManager: ON")
 end
 
 local function Disable()
@@ -659,7 +659,7 @@ local function Disable()
     WaitingForVIPTP = false
     CurrentState = "IDLE"
     CurrentPhase = "UNKNOWN"
-    print("[YOKUDO] FarmingManager: OFF")
+    print("[ASTHETIC] FarmingManager: OFF")
 end
 
 local function Toggle()
@@ -669,7 +669,7 @@ end
 -- ==================================================
 -- EXPORT
 -- ==================================================
-_G.YOKUDO_FarmingManager = {
+_G.ASTHETIC_FarmingManager = {
     Enable = Enable,
     Disable = Disable,
     Toggle = Toggle,

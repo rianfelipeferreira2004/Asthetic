@@ -1,36 +1,36 @@
 -- ==================================================
--- YOKUDO HUB | STEAL AN EGG | Loader
+-- ASTHETIC HUB | STEAL AN EGG | Loader
 -- ✅ Load CharacterSystem មុន Features
 -- ✅ VIPTP ជំនួស EggCheckPremium
 -- ==================================================
 
 local BASE_URL = "https://raw.githubusercontent.com/rianfelipeferreira2004/Asthetic/main/"
 
-_G.YOKUDO_EnablePrint = false
+_G.ASTHETIC_EnablePrint = false
 
 -- NÃO sobrescreve o print global (quebrava módulos internos do CoreGui
 -- como RobloxGui.Modules.Common.Locales.en-us). Usa helper local.
 local oldPrint = print
 local function YPrint(...)
-    if _G.YOKUDO_EnablePrint then
+    if _G.ASTHETIC_EnablePrint then
         oldPrint(...)
     end
 end
 
-YPrint("🔵 Loading YOKUDO HUB...")
+YPrint("🔵 Loading ASTHETIC HUB...")
 
 -- ==================================================
 -- CACHE SYSTEM
 -- ==================================================
-_G.YOKUDO_Cache = _G.YOKUDO_Cache or {}
+_G.ASTHETIC_Cache = _G.ASTHETIC_Cache or {}
 
 local function GetScript(path)
     local fullPath = BASE_URL .. path
-    if _G.YOKUDO_Cache[fullPath] then
-        return _G.YOKUDO_Cache[fullPath]
+    if _G.ASTHETIC_Cache[fullPath] then
+        return _G.ASTHETIC_Cache[fullPath]
     end
     local script = game:HttpGet(fullPath)
-    _G.YOKUDO_Cache[fullPath] = script
+    _G.ASTHETIC_Cache[fullPath] = script
     return script
 end
 
@@ -96,7 +96,7 @@ local function CreateLoadingScreen()
     Title.Size = UDim2.new(1, -30, 0, 28)
     Title.Position = UDim2.new(0, 15, 0, 8)
     Title.BackgroundTransparency = 1
-    Title.Text = "YOKUDO HUB"
+    Title.Text = "ASTHETIC HUB"
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     Title.TextSize = 20
     Title.TextXAlignment = Enum.TextXAlignment.Center
@@ -272,8 +272,8 @@ loadstring(GetScript("Tabs/Setting.lua"))()
 -- SELECT DEFAULT TAB
 -- ==================================================
 Loading.Update(92)
-if _G.YOKUDO_TabsManager then
-    _G.YOKUDO_TabsManager:SelectTabByName("Info")
+if _G.ASTHETIC_TabsManager then
+    _G.ASTHETIC_TabsManager:SelectTabByName("Info")
 end
 
 Loading.Update(95)
@@ -290,9 +290,9 @@ loadstring(GetScript("Features/BypassAntiCheat.lua"))()
 YPrint("⏳ Waiting 2s before applying config...")
 task.wait(2)
 
-if _G.YOKUDO_ConfigSystem then
+if _G.ASTHETIC_ConfigSystem then
     YPrint("🔧 Applying Config...")
-    _G.YOKUDO_ConfigSystem.Load()
+    _G.ASTHETIC_ConfigSystem.Load()
 end
 
 Loading.Update(100)
@@ -300,4 +300,4 @@ Loading.Update(100)
 task.wait(0.3)
 Loading.Destroy()
 YPrint("✅ Loading Screen Closed!")
-YPrint("🚀 YOKUDO HUB | Ready!")
+YPrint("🚀 ASTHETIC HUB | Ready!")

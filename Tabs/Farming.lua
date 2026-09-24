@@ -1,12 +1,12 @@
 -- ==================================================
--- YOKUDO HUB | TAB | Farming
+-- ASTHETIC HUB | TAB | Farming
 -- ✅ ភ្ជាប់ជាមួយ EggCheckPremium
 -- ✅ ភ្ជាប់ជាមួយ FarmingManager
 -- ✅ Dropdown Select Rarity
 -- ✅ Checkbox Auto AFK Farming
 -- ==================================================
 
-local TabsManager = _G.YOKUDO_TabsManager
+local TabsManager = _G.ASTHETIC_TabsManager
 local TweenService = game:GetService("TweenService")
 
 local FarmingTab, FarmingPage = TabsManager:RegisterTab("Farming", 2, "FARMING")
@@ -166,25 +166,25 @@ local function CreateDropdownOption(Name, Order)
         DropdownBtn.Text = GetSelectedText() .. " ▼"
 
         -- ✅ Update EggCheckPremium
-        if _G.YOKUDO_EggCheckPremium then
+        if _G.ASTHETIC_EggCheckPremium then
             local List = {}
             if SelectedRarities.Secret then table.insert(List, "Secret") end
             if SelectedRarities.Eternal then table.insert(List, "Eternal") end
             if SelectedRarities.Divine then table.insert(List, "Divine") end
             if SelectedRarities.Mythical then table.insert(List, "Mythical") end
             if SelectedRarities.Cosmic then table.insert(List, "Cosmic") end
-            _G.YOKUDO_EggCheckPremium.SetRarities(List)
+            _G.ASTHETIC_EggCheckPremium.SetRarities(List)
         end
 
         -- ✅ Update FarmingManager
-        if _G.YOKUDO_FarmingManager then
+        if _G.ASTHETIC_FarmingManager then
             local List = {}
             if SelectedRarities.Secret then table.insert(List, "Secret") end
             if SelectedRarities.Eternal then table.insert(List, "Eternal") end
             if SelectedRarities.Divine then table.insert(List, "Divine") end
             if SelectedRarities.Mythical then table.insert(List, "Mythical") end
             if SelectedRarities.Cosmic then table.insert(List, "Cosmic") end
-            _G.YOKUDO_FarmingManager.SetRarities(List)
+            _G.ASTHETIC_FarmingManager.SetRarities(List)
         end
 
         print("[Farming] Rarity Toggled: " .. Name .. " = " .. tostring(SelectedRarities[Name]))
@@ -282,8 +282,8 @@ FarmCheck.Parent = FarmButton
 local FarmEnabled = false
 
 local function ToggleFarm()
-    if not _G.YOKUDO_FarmingManager then
-        warn("[YOKUDO] FarmingManager not loaded!")
+    if not _G.ASTHETIC_FarmingManager then
+        warn("[ASTHETIC] FarmingManager not loaded!")
         return
     end
 
@@ -295,32 +295,32 @@ local function ToggleFarm()
         FarmStroke.Color = Color3.fromRGB(135, 120, 225)
 
         -- ✅ Set Rarities ទៅ EggCheckPremium
-        if _G.YOKUDO_EggCheckPremium then
+        if _G.ASTHETIC_EggCheckPremium then
             local List = {}
             if SelectedRarities.Secret then table.insert(List, "Secret") end
             if SelectedRarities.Eternal then table.insert(List, "Eternal") end
             if SelectedRarities.Divine then table.insert(List, "Divine") end
             if SelectedRarities.Mythical then table.insert(List, "Mythical") end
             if SelectedRarities.Cosmic then table.insert(List, "Cosmic") end
-            _G.YOKUDO_EggCheckPremium.SetRarities(List)
+            _G.ASTHETIC_EggCheckPremium.SetRarities(List)
         end
 
         -- ✅ Set Rarities ទៅ FarmingManager
-        if _G.YOKUDO_FarmingManager then
+        if _G.ASTHETIC_FarmingManager then
             local List = {}
             if SelectedRarities.Secret then table.insert(List, "Secret") end
             if SelectedRarities.Eternal then table.insert(List, "Eternal") end
             if SelectedRarities.Divine then table.insert(List, "Divine") end
             if SelectedRarities.Mythical then table.insert(List, "Mythical") end
             if SelectedRarities.Cosmic then table.insert(List, "Cosmic") end
-            _G.YOKUDO_FarmingManager.SetRarities(List)
+            _G.ASTHETIC_FarmingManager.SetRarities(List)
         end
 
-        _G.YOKUDO_FarmingManager.Enable()
+        _G.ASTHETIC_FarmingManager.Enable()
     else
         FarmButton.BackgroundColor3 = Color3.fromRGB(28, 29, 39)
         FarmStroke.Color = Color3.fromRGB(200, 200, 220)
-        _G.YOKUDO_FarmingManager.Disable()
+        _G.ASTHETIC_FarmingManager.Disable()
     end
 end
 
@@ -333,8 +333,8 @@ end)
 -- ==================================================
 task.spawn(function()
     task.wait(1)
-    if _G.YOKUDO_FarmingManager then
-        local State = _G.YOKUDO_FarmingManager.IsEnabled()
+    if _G.ASTHETIC_FarmingManager then
+        local State = _G.ASTHETIC_FarmingManager.IsEnabled()
         FarmEnabled = State
         FarmCheck.Visible = State
         if State then
@@ -349,8 +349,8 @@ end)
 -- ==================================================
 task.spawn(function()
     while task.wait(1) do
-        if _G.YOKUDO_FarmingManager then
-            local CurrentState = _G.YOKUDO_FarmingManager.IsEnabled()
+        if _G.ASTHETIC_FarmingManager then
+            local CurrentState = _G.ASTHETIC_FarmingManager.IsEnabled()
             local UIState = FarmCheck.Visible
 
             if CurrentState ~= UIState then
@@ -365,7 +365,7 @@ task.spawn(function()
                     FarmStroke.Color = Color3.fromRGB(200, 200, 220)
                 end
 
-                print("[YOKUDO] Farming UI Sync | State: " .. tostring(CurrentState))
+                print("[ASTHETIC] Farming UI Sync | State: " .. tostring(CurrentState))
             end
         end
     end
@@ -374,9 +374,9 @@ end)
 -- ==================================================
 -- REFRESH FUNCTION (សម្រាប់ ConfigSystem)
 -- ==================================================
-_G.YOKUDO_RefreshFarmingUI = function()
-    if _G.YOKUDO_FarmingManager then
-        local State = _G.YOKUDO_FarmingManager.IsEnabled()
+_G.ASTHETIC_RefreshFarmingUI = function()
+    if _G.ASTHETIC_FarmingManager then
+        local State = _G.ASTHETIC_FarmingManager.IsEnabled()
         FarmEnabled = State
         FarmCheck.Visible = State
 
@@ -388,7 +388,7 @@ _G.YOKUDO_RefreshFarmingUI = function()
             FarmStroke.Color = Color3.fromRGB(200, 200, 220)
         end
 
-        print("[YOKUDO] Farming Tab UI Refreshed | State: " .. tostring(State))
+        print("[ASTHETIC] Farming Tab UI Refreshed | State: " .. tostring(State))
     end
 end
 

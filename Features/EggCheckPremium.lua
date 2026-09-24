@@ -1,5 +1,5 @@
 -- ==================================================
--- YOKUDO HUB | FEATURE | Egg Check Premium
+-- ASTHETIC HUB | FEATURE | Egg Check Premium
 -- ជ្រើសរើស Egg តាម Rarity (Divine > Eternal > Secret) និង $/s
 -- ✅ Register ជាមួយ CharacterSystem
 -- ==================================================
@@ -227,7 +227,7 @@ end)
 -- ==================================================
 -- EXPORT
 -- ==================================================
-_G.YOKUDO_EggCheckPremium = {
+_G.ASTHETIC_EggCheckPremium = {
     SetRarities = SetRarities,
     GetRarities = GetRarities,
     FindBestEgg = FindBestEgg,

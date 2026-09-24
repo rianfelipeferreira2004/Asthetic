@@ -1,8 +1,8 @@
 -- ==================================================
--- YOKUDO HUB | TAB | Combat
+-- ASTHETIC HUB | TAB | Combat
 -- ==================================================
 
-local TabsManager = _G.YOKUDO_TabsManager
+local TabsManager = _G.ASTHETIC_TabsManager
 
 local CombatTab, CombatPage = TabsManager:RegisterTab("Combat", 3, "COMBAT")
 
@@ -64,14 +64,14 @@ local function ToggleAutoEquip()
     if AutoEquipCheck.Visible then
         AutoEquipCheckButton.BackgroundColor3 = Color3.fromRGB(105, 90, 190)
         AutoEquipStroke.Color = Color3.fromRGB(135, 120, 225)
-        if _G.YOKUDO_AutoAttack then
-            _G.YOKUDO_AutoAttack.EnableAutoEquip()
+        if _G.ASTHETIC_AutoAttack then
+            _G.ASTHETIC_AutoAttack.EnableAutoEquip()
         end
     else
         AutoEquipCheckButton.BackgroundColor3 = Color3.fromRGB(28, 29, 39)
         AutoEquipStroke.Color = Color3.fromRGB(200, 200, 220)
-        if _G.YOKUDO_AutoAttack then
-            _G.YOKUDO_AutoAttack.DisableAutoEquip()
+        if _G.ASTHETIC_AutoAttack then
+            _G.ASTHETIC_AutoAttack.DisableAutoEquip()
         end
     end
 end
@@ -145,14 +145,14 @@ local function ToggleAutoHit()
     if AutoHitCheck.Visible then
         AutoHitCheckButton.BackgroundColor3 = Color3.fromRGB(105, 90, 190)
         AutoHitStroke.Color = Color3.fromRGB(135, 120, 225)
-        if _G.YOKUDO_AutoAttack then
-            _G.YOKUDO_AutoAttack.EnableAutoHit()
+        if _G.ASTHETIC_AutoAttack then
+            _G.ASTHETIC_AutoAttack.EnableAutoHit()
         end
     else
         AutoHitCheckButton.BackgroundColor3 = Color3.fromRGB(28, 29, 39)
         AutoHitStroke.Color = Color3.fromRGB(200, 200, 220)
-        if _G.YOKUDO_AutoAttack then
-            _G.YOKUDO_AutoAttack.DisableAutoHit()
+        if _G.ASTHETIC_AutoAttack then
+            _G.ASTHETIC_AutoAttack.DisableAutoHit()
         end
     end
 end

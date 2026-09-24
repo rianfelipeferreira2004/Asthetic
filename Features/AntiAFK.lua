@@ -1,5 +1,5 @@
 --==================================================
--- YOKUDO HUB | FEATURE | Anti AFK
+-- ASTHETIC HUB | FEATURE | Anti AFK
 -- Prevent AFK Kick/Hop using 3 Methods
 -- Method 1: Mouse Move
 -- Method 2: Camera Rotation
@@ -91,7 +91,7 @@ local function EnableAntiAFK()
             task.wait(WaitTime)
             if not AntiAFKEnabled then break end
             DoMouseMove()
-            print("[YOKUDO] Anti AFK: Mouse Move")
+            print("[ASTHETIC] Anti AFK: Mouse Move")
         end
     end)
 
@@ -102,7 +102,7 @@ local function EnableAntiAFK()
             task.wait(WaitTime)
             if not AntiAFKEnabled then break end
             DoCameraRotation()
-            print("[YOKUDO] Anti AFK: Camera Rotation")
+            print("[ASTHETIC] Anti AFK: Camera Rotation")
         end
     end)
 
@@ -113,11 +113,11 @@ local function EnableAntiAFK()
             task.wait(WaitTime)
             if not AntiAFKEnabled then break end
             DoCameraZoom()
-            print("[YOKUDO] Anti AFK: Camera Zoom")
+            print("[ASTHETIC] Anti AFK: Camera Zoom")
         end
     end)
 
-    print("[YOKUDO] Anti AFK: ON (3 Methods)")
+    print("[ASTHETIC] Anti AFK: ON (3 Methods)")
 end
 
 local function DisableAntiAFK()
@@ -137,7 +137,7 @@ local function DisableAntiAFK()
         ZoomThread = nil
     end
 
-    print("[YOKUDO] Anti AFK: OFF")
+    print("[ASTHETIC] Anti AFK: OFF")
 end
 
 local function ToggleAntiAFK()
@@ -152,7 +152,7 @@ end
 -- EXPORT
 --==================================================
 
-_G.YOKUDO_AntiAFK = {
+_G.ASTHETIC_AntiAFK = {
     Enable = EnableAntiAFK,
     Disable = DisableAntiAFK,
     Toggle = ToggleAntiAFK,

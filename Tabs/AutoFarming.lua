@@ -1,8 +1,8 @@
 --==================================================
--- YOKUDO HUB | TAB | Auto Farming
+-- ASTHETIC HUB | TAB | Auto Farming
 --==================================================
 
-local TabsManager = _G.YOKUDO_TabsManager
+local TabsManager = _G.ASTHETIC_TabsManager
 local TweenService = game:GetService("TweenService")
 
 local AutoFarmingTab, AutoFarmingPage = TabsManager:RegisterTab("Auto Farming", 4, "AUTO_FARMING")
@@ -102,7 +102,7 @@ local GetEggEnabled = false
 local function UpdateGetEggBox(Icon, Name, Rate, EggId)
     GetEggIcon.Image = Icon or ""
     GetEggName.Text = Name or "No Egg Selected"
-    GetEggRate.Text = "$" .. (_G.YOKUDO_AutoFarm and _G.YOKUDO_AutoFarm.FormatMoney(Rate or 0) or tostring(Rate or 0)) .. "/s"
+    GetEggRate.Text = "$" .. (_G.ASTHETIC_AutoFarm and _G.ASTHETIC_AutoFarm.FormatMoney(Rate or 0) or tostring(Rate or 0)) .. "/s"
     SelectedEggId = EggId
 
     GetEggIcon.ImageTransparency = 1
@@ -123,8 +123,8 @@ local function ToggleGetEgg()
         GetEggCheckStroke.Color = Color3.fromRGB(135, 120, 225)
 
         -- ✅ Call StartTeleport (reads Method from Setting)
-        if _G.YOKUDO_AutoFarm then
-            _G.YOKUDO_AutoFarm.StartTeleport()
+        if _G.ASTHETIC_AutoFarm then
+            _G.ASTHETIC_AutoFarm.StartTeleport()
         end
     else
         GetEggCheckButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -132,8 +132,8 @@ local function ToggleGetEgg()
         GetEggCheckStroke.Color = Color3.fromRGB(255, 255, 255)
 
         -- ✅ Call StopTeleport
-        if _G.YOKUDO_AutoFarm then
-            _G.YOKUDO_AutoFarm.StopTeleport()
+        if _G.ASTHETIC_AutoFarm then
+            _G.ASTHETIC_AutoFarm.StopTeleport()
         end
     end
 end
@@ -267,7 +267,7 @@ local function CreateEggEntry(EggData)
     RateLabel.Size = UDim2.new(1, -140, 0, 14)
     RateLabel.Position = UDim2.new(0, 48, 0, 24)
     RateLabel.BackgroundTransparency = 1
-    RateLabel.Text = "$" .. (_G.YOKUDO_AutoFarm and _G.YOKUDO_AutoFarm.FormatMoney(EggData.EarningRate) or tostring(EggData.EarningRate)) .. "/s"
+    RateLabel.Text = "$" .. (_G.ASTHETIC_AutoFarm and _G.ASTHETIC_AutoFarm.FormatMoney(EggData.EarningRate) or tostring(EggData.EarningRate)) .. "/s"
     RateLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
     RateLabel.TextSize = 10
     RateLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -303,8 +303,8 @@ local function CreateEggEntry(EggData)
         SelectedEggData = EggData
 
         -- ✅ គ្រាន់តែ Save មិន Enable
-        if _G.YOKUDO_AutoFarm then
-            _G.YOKUDO_AutoFarm.SelectEgg(EggData)
+        if _G.ASTHETIC_AutoFarm then
+            _G.ASTHETIC_AutoFarm.SelectEgg(EggData)
         end
     end)
 
@@ -313,7 +313,7 @@ end
 
 local function RefreshEggList()
     if not CheckEggEnabled then return end
-    if not _G.YOKUDO_AutoFarm then return end
+    if not _G.ASTHETIC_AutoFarm then return end
 
     for _, child in ipairs(EggScrollFrame:GetChildren()) do
         if child:IsA("Frame") then
@@ -323,7 +323,7 @@ local function RefreshEggList()
 
     EggEntries = {}
 
-    local Eggs = _G.YOKUDO_AutoFarm.ScanEggs()
+    local Eggs = _G.ASTHETIC_AutoFarm.ScanEggs()
     for _, EggData in ipairs(Eggs) do
         local Entry = CreateEggEntry(EggData)
         table.insert(EggEntries, Entry)
@@ -339,16 +339,16 @@ local function ToggleCheckEgg()
         CheckEggCheckButton.BackgroundColor3 = Color3.fromRGB(105, 90, 190)
         CheckEggCheckButton.BackgroundTransparency = 0
         CheckEggStroke.Color = Color3.fromRGB(135, 120, 225)
-        if _G.YOKUDO_AutoFarm then
-            _G.YOKUDO_AutoFarm.Enable()
+        if _G.ASTHETIC_AutoFarm then
+            _G.ASTHETIC_AutoFarm.Enable()
         end
         RefreshEggList()
     else
         CheckEggCheckButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         CheckEggCheckButton.BackgroundTransparency = 0.85
         CheckEggStroke.Color = Color3.fromRGB(255, 255, 255)
-        if _G.YOKUDO_AutoFarm then
-            _G.YOKUDO_AutoFarm.Disable()
+        if _G.ASTHETIC_AutoFarm then
+            _G.ASTHETIC_AutoFarm.Disable()
         end
         for _, child in ipairs(EggScrollFrame:GetChildren()) do
             if child:IsA("Frame") then

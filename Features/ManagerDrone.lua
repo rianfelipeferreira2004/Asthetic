@@ -1,5 +1,5 @@
 -- ==================================================
--- YOKUDO HUB | FEATURE | Manager Drone
+-- ASTHETIC HUB | FEATURE | Manager Drone
 -- គ្រប់គ្រង Event → ហៅ Attack ឬ AFK
 -- ✅ Event ចេញ → Stop AFK → Jump Out → Call Attack
 --    (AttackDrone គ្រប់គ្រង Fly TP ទៅ Safe Zone ខ្លួនឯង)
@@ -134,11 +134,11 @@ end
 local function ForceStopAll()
     print("[ManagerDrone] Force Stop All Features")
 
-    if _G.YOKUDO_AttackDrone then
-        pcall(function() _G.YOKUDO_AttackDrone.Stop() end)
+    if _G.ASTHETIC_AttackDrone then
+        pcall(function() _G.ASTHETIC_AttackDrone.Stop() end)
     end
-    if _G.YOKUDO_AFKSystem then
-        pcall(function() _G.YOKUDO_AFKSystem.Disable() end)
+    if _G.ASTHETIC_AFKSystem then
+        pcall(function() _G.ASTHETIC_AFKSystem.Disable() end)
     end
 end
 
@@ -155,12 +155,12 @@ local function SwitchAFKToAttack()
 
     -- 1. រក Treadmill Pos
     local TreadmillPos = nil
-    if _G.YOKUDO_AFKSystem then
-        TreadmillPos = _G.YOKUDO_AFKSystem.GetMyTreadmillPos()
+    if _G.ASTHETIC_AFKSystem then
+        TreadmillPos = _G.ASTHETIC_AFKSystem.GetMyTreadmillPos()
     end
 
-    if not TreadmillPos and _G.YOKUDO_AFKSystem then
-        local _, Treadmill = _G.YOKUDO_AFKSystem.FindMyPlotAndTreadmill()
+    if not TreadmillPos and _G.ASTHETIC_AFKSystem then
+        local _, Treadmill = _G.ASTHETIC_AFKSystem.FindMyPlotAndTreadmill()
         if Treadmill then
             TreadmillPos = Treadmill.Position
         end
@@ -168,12 +168,12 @@ local function SwitchAFKToAttack()
 
     if not TreadmillPos then
         print("[ManagerDrone] No Treadmill → Stop AFK → Call Attack")
-        if _G.YOKUDO_AFKSystem then
-            _G.YOKUDO_AFKSystem.Disable()
+        if _G.ASTHETIC_AFKSystem then
+            _G.ASTHETIC_AFKSystem.Disable()
         end
         task.wait(0.5)
-        if ManagerEnabled and _G.YOKUDO_AttackDrone then
-            _G.YOKUDO_AttackDrone.Start()
+        if ManagerEnabled and _G.ASTHETIC_AttackDrone then
+            _G.ASTHETIC_AttackDrone.Start()
         end
         Switching = false
         return
@@ -181,13 +181,13 @@ local function SwitchAFKToAttack()
 
     -- 2. Jump ចេញពី Treadmill រហូតដល់ Dist > 5
     print("[ManagerDrone] Jumping out of Treadmill...")
-    _G.YOKUDO_AFKSystem.JumpOutTreadmill(TreadmillPos, function()
+    _G.ASTHETIC_AFKSystem.JumpOutTreadmill(TreadmillPos, function()
         if not ManagerEnabled then Switching = false return end
         print("[ManagerDrone] ✅ Jumped out!")
 
         -- 3. Stop AFK (បិទ AFKEnabled → FlyTP របស់ AFKSystem ឈប់)
-        if _G.YOKUDO_AFKSystem then
-            _G.YOKUDO_AFKSystem.Disable()
+        if _G.ASTHETIC_AFKSystem then
+            _G.ASTHETIC_AFKSystem.Disable()
         end
 
         task.wait(AFK_JUMP_WAIT)
@@ -196,8 +196,8 @@ local function SwitchAFKToAttack()
 
         -- 4. ហៅ Attack Drone (AttackDrone គ្រប់គ្រង Fly TP ទៅ Safe Zone ខ្លួនឯង)
         print("[ManagerDrone] Call Attack Drone → Fly TP to Safe Zone → Spawn Loop")
-        if _G.YOKUDO_AttackDrone then
-            _G.YOKUDO_AttackDrone.Start()
+        if _G.ASTHETIC_AttackDrone then
+            _G.ASTHETIC_AttackDrone.Start()
         end
         Switching = false
     end)
@@ -222,38 +222,38 @@ local function MainLoop()
         -- Event មិនទាន់ចេញ (Text = "in Xm Ys") → AFK System
         -- ==================================================
         if EventNotActive then
-            if _G.YOKUDO_AttackDrone and _G.YOKUDO_AttackDrone.IsEnabled() then
+            if _G.ASTHETIC_AttackDrone and _G.ASTHETIC_AttackDrone.IsEnabled() then
                 print("[ManagerDrone] Event Not Active → Stop Attack")
-                _G.YOKUDO_AttackDrone.Stop()
+                _G.ASTHETIC_AttackDrone.Stop()
             end
 
-            if _G.YOKUDO_AFKSystem and not _G.YOKUDO_AFKSystem.IsEnabled() then
+            if _G.ASTHETIC_AFKSystem and not _G.ASTHETIC_AFKSystem.IsEnabled() then
                 print("[ManagerDrone] Event Not Active → AFK System")
-                _G.YOKUDO_AFKSystem.Enable()
+                _G.ASTHETIC_AFKSystem.Enable()
             end
         -- ==================================================
         -- Event ជិតចប់ (Sec <= 10) → Stop Attack → AFK
         -- ==================================================
         elseif EventStopAttack then
-            if _G.YOKUDO_AttackDrone and _G.YOKUDO_AttackDrone.IsEnabled() then
+            if _G.ASTHETIC_AttackDrone and _G.ASTHETIC_AttackDrone.IsEnabled() then
                 print("[ManagerDrone] Event <= 10s → Stop Attack → AFK System")
-                _G.YOKUDO_AttackDrone.Stop()
+                _G.ASTHETIC_AttackDrone.Stop()
             end
 
-            if _G.YOKUDO_AFKSystem and not _G.YOKUDO_AFKSystem.IsEnabled() then
-                _G.YOKUDO_AFKSystem.Enable()
+            if _G.ASTHETIC_AFKSystem and not _G.ASTHETIC_AFKSystem.IsEnabled() then
+                _G.ASTHETIC_AFKSystem.Enable()
             end
         -- ==================================================
         -- Event ចេញ (Sec > 10 ou Sec desconhecido) → Switch AFK → Attack
         -- ==================================================
         elseif EventActive then
             if not Switching then
-                if _G.YOKUDO_AFKSystem and _G.YOKUDO_AFKSystem.IsEnabled() then
+                if _G.ASTHETIC_AFKSystem and _G.ASTHETIC_AFKSystem.IsEnabled() then
                     print("[ManagerDrone] Event Active → Switch AFK to Attack")
                     SwitchAFKToAttack()
-                elseif _G.YOKUDO_AttackDrone and not _G.YOKUDO_AttackDrone.IsEnabled() then
+                elseif _G.ASTHETIC_AttackDrone and not _G.ASTHETIC_AttackDrone.IsEnabled() then
                     print("[ManagerDrone] Event Active → Attack Drone")
-                    _G.YOKUDO_AttackDrone.Start()
+                    _G.ASTHETIC_AttackDrone.Start()
                 end
             end
         end
@@ -334,7 +334,7 @@ end)
 -- ==================================================
 -- EXPORT
 -- ==================================================
-_G.YOKUDO_ManagerDrone = {
+_G.ASTHETIC_ManagerDrone = {
     Enable = EnableManager,
     Disable = DisableManager,
     Toggle = ToggleManager,

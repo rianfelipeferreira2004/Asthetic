@@ -1,5 +1,5 @@
 -- ==================================================
--- YOKUDO HUB | FEATURE | Anti Trap
+-- ASTHETIC HUB | FEATURE | Anti Trap
 -- Auto Remove Children in workspace.__DEBRIS
 -- ==================================================
 
@@ -39,7 +39,7 @@ local function EnableAntiTrap()
         end
     end)
 
-    print("[YOKUDO] Anti Trap: ON")
+    print("[ASTHETIC] Anti Trap: ON")
 end
 
 -- ==================================================
@@ -47,7 +47,7 @@ end
 -- ==================================================
 local function DisableAntiTrap()
     AntiTrapEnabled = false
-    print("[YOKUDO] Anti Trap: OFF")
+    print("[ASTHETIC] Anti Trap: OFF")
 end
 
 -- ==================================================
@@ -64,7 +64,7 @@ end
 -- ==================================================
 -- EXPORT
 -- ==================================================
-_G.YOKUDO_AntiTrap = {
+_G.ASTHETIC_AntiTrap = {
     Toggle = ToggleAntiTrap,
     Enable = EnableAntiTrap,
     Disable = DisableAntiTrap,

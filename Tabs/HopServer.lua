@@ -1,9 +1,9 @@
 -- ==================================================
--- YOKUDO HUB | TAB | Hop Server
+-- ASTHETIC HUB | TAB | Hop Server
 -- Feature: Check Hop Server Low Player
 -- ==================================================
 
-local TabsManager = _G.YOKUDO_TabsManager
+local TabsManager = _G.ASTHETIC_TabsManager
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")

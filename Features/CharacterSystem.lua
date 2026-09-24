@@ -1,5 +1,5 @@
 -- ==================================================
--- YOKUDO HUB | CORE | Character System
+-- ASTHETIC HUB | CORE | Character System
 -- គ្រប់គ្រង Character/Humanoid ទាំងអស់
 -- ✅ Features Register ជាមួយ System
 -- ✅ Auto Restart Features ពេល Character ថ្មី
@@ -224,6 +224,6 @@ end
 -- ==================================================
 -- EXPORT
 -- ==================================================
-_G.YOKUDO_CharacterSystem = CharacterSystem
+_G.ASTHETIC_CharacterSystem = CharacterSystem
 
 print("✅ CharacterSystem Loaded")

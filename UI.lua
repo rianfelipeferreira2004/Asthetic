@@ -1,5 +1,5 @@
 -- ==================================================
--- YOKUDO HUB | NEW PROJECT | UI
+-- ASTHETIC HUB | NEW PROJECT | UI
 -- ==================================================
 
 local Services = {
@@ -11,7 +11,7 @@ local Services = {
     ContentProvider = game:GetService("ContentProvider"),
 }
 
-local Settings = _G.YOKUDO
+local Settings = _G.ASTHETIC
 local Theme = Settings.UI.Theme
 
 -- ==================================================
@@ -28,7 +28,7 @@ end)
 
 -- Clean old instances
 pcall(function()
-    local Old = GuiParent:FindFirstChild("YOKUDO_HUB")
+    local Old = GuiParent:FindFirstChild("ASTHETIC_HUB")
     if Old then Old:Destroy() end
     local OldToggle = GuiParent:FindFirstChild("ToggleGUI")
     if OldToggle then OldToggle:Destroy() end
@@ -74,7 +74,7 @@ ToggleStroke.Parent = Toggle
 -- MAIN UI
 -- ==================================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "YOKUDO_HUB"
+ScreenGui.Name = "ASTHETIC_HUB"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -219,14 +219,14 @@ Content.Parent = Main
 -- ==================================================
 -- EXPORT
 -- ==================================================
-_G.YOKUDO_Main = Main
-_G.YOKUDO_TopBar = TopBar
-_G.YOKUDO_Sidebar = Sidebar
-_G.YOKUDO_TabScroll = TabScroll
-_G.YOKUDO_Content = Content
-_G.YOKUDO_ScreenGui = ScreenGui
-_G.YOKUDO_Toggle = Toggle
-_G.YOKUDO_GuiParent = GuiParent
+_G.ASTHETIC_Main = Main
+_G.ASTHETIC_TopBar = TopBar
+_G.ASTHETIC_Sidebar = Sidebar
+_G.ASTHETIC_TabScroll = TabScroll
+_G.ASTHETIC_Content = Content
+_G.ASTHETIC_ScreenGui = ScreenGui
+_G.ASTHETIC_Toggle = Toggle
+_G.ASTHETIC_GuiParent = GuiParent
 
 -- ==================================================
 -- DRAG SYSTEM (Main)

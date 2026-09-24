@@ -1,5 +1,5 @@
 -- ==================================================
--- YOKUDO HUB | FEATURE | AFK System
+-- ASTHETIC HUB | FEATURE | AFK System
 -- រក Plot + Treadmill → Fly TP → Jump Out
 -- ✅ Fly ធម្មតា → Stop ភ្លាម → មិន Lock
 -- ✅ JumpOut រហូតដល់ Dist > 5
@@ -70,7 +70,7 @@ local function CleanupMovers()
     local Hum, Root = GetHumanoid()
     if Root then
         for _, Child in ipairs(Root:GetChildren()) do
-            if Child.Name == "YokudoBV" or Child.Name == "YokudoBG" then
+            if Child.Name == "AstheticBV" or Child.Name == "AstheticBG" then
                 pcall(function() Child:Destroy() end)
             end
         end
@@ -144,14 +144,14 @@ local function FlyTP(Destination, Callback)
     Hum.PlatformStand = true
 
     BodyVelocity = Instance.new("BodyVelocity")
-    BodyVelocity.Name = "YokudoBV"
+    BodyVelocity.Name = "AstheticBV"
     BodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     BodyVelocity.P = 1250
     BodyVelocity.Velocity = Vector3.zero
     BodyVelocity.Parent = Root
 
     BodyGyro = Instance.new("BodyGyro")
-    BodyGyro.Name = "YokudoBG"
+    BodyGyro.Name = "AstheticBG"
     BodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
     BodyGyro.P = 3000
     BodyGyro.D = 500
@@ -328,7 +328,7 @@ end
 -- ==================================================
 -- EXPORT
 -- ==================================================
-_G.YOKUDO_AFKSystem = {
+_G.ASTHETIC_AFKSystem = {
     Enable = EnableAFK,
     Disable = DisableAFK,
     IsEnabled = function() return AFKEnabled end,
