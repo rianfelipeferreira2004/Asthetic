@@ -1,399 +1,195 @@
 -- ==================================================
--- ASTHETIC HUB | FEATURE | Bypass Anti Cheat
--- Humanoid Replace + Anti Death
--- ✅ Restart Features តាមរយៈ CharacterSystem
--- ❌ លុប Auto Re-run ចេញ
+-- ASTHETIC HUB | FEATURE | Bypass Anti Cheat V2 (stealth)
+--
+-- POR QUE A V1 TOMAVA KICK (diagnostico senior):
+--  1. OldHumanoid:Destroy() no client REPLICA pro servidor.
+--     O server via o humanoid sumir + um clone desconhecido
+--     aparecer no character = tampering na cara = kick.
+--  2. MaxHealth/Health = math.huge REPLICA pro servidor.
+--     Qualquer sanity check do jogo (vida acima do maximo
+--     possivel) = kick instantaneo.
+--  3. Loop a cada 0.1s + Heartbeat escrevendo Health/MaxHealth
+--     = spam de replicacao com assinatura obvia de cheat.
+--  4. Auto-rodava o replace 2s apos o load: todo mundo tomava
+--     kick sozinho, sem apertar nada.
+--
+-- V2: NADA com valor impossivel chega ao servidor.
+--  - Sem Destroy/Clone: humanoid original intacto.
+--  - Sem inf: restore limitado ao MaxHealth ORIGINAL.
+--  - Sem loop de escrita: so reage a dano (event-driven,
+--    com throttle de 0.15s).
+--  - Morte real (0 de vida) NAO e bloqueada: deixa morrer
+--    limpo p/ respawnar (FarmingManager retoma sozinho).
+--    Travar o estado Dead local gerava "zumbi" que o server
+--    ja matou = outro motivo classico de kick.
+--  - State shield e client-side (nao replica): anti-ragdoll
+--    do tapa do guarda.
+--  - Void rescue: salva antes do kill-plane.
 -- ==================================================
 
 local Players = game:GetService("Players")
 
 local Player = Players.LocalPlayer
 
+local VOID_Y = -200
+local SAFE_ZONE = Vector3.new(533, 70, -366)
+local RESTORE_COOLDOWN = 0.15
+
+local Enabled = false
+local HealthConn = nil
+local WatchThread = nil
+local RespawnConn = nil
+local HookedChar = nil
+
+local LastGoodHealth = nil
+local OrigMaxHealth = nil
+local LastRestore = 0
+
 -- ==================================================
--- MAIN FUNCTION
+-- HELPERS
 -- ==================================================
-local function RunBypassAntiCheat()
-    local Character = Player.Character
-    if not Character then return end
+local function GetHum()
+    local Char = Player.Character
+    if not Char then return nil, nil end
+    local Hum = Char:FindFirstChildOfClass("Humanoid")
+    local Root = Char:FindFirstChild("HumanoidRootPart")
+    return Hum, Root
+end
 
-    local OldHumanoid = Character:FindFirstChildOfClass("Humanoid")
-    if not OldHumanoid then
-        warn("[ASTHETIC] Humanoid not found")
-        return
-    end
-
-    print("========================================")
-    print("[ASTHETIC] START HUMANOID REPLACE")
-    print("========================================")
-
-    --==================================================
-    -- ANTI DEATH SETTINGS
-    --==================================================
-    local GodMode = true
-
-    --==================================================
-    -- SAVE JUMP PROPERTIES
-    --==================================================
-    local SavedJumpProperties = {}
-
-    local function SaveJumpProperty(Property)
-        local Success, Value = pcall(function()
-            return OldHumanoid[Property]
-        end)
-        if Success then
-            SavedJumpProperties[Property] = Value
-        end
-    end
-
-    SaveJumpProperty("JumpPower")
-    SaveJumpProperty("JumpHeight")
-    SaveJumpProperty("UseJumpPower")
-
-    --==================================================
-    -- SAVE STATE MACHINE
-    --==================================================
-    local SavedEvaluateStateMachine
+-- Shield client-side (nao replica): segura o ragdoll do guard
+-- sem tocar em nada que o servidor valide.
+local function ApplyStateShield(Hum)
+    if not Hum then return end
     pcall(function()
-        SavedEvaluateStateMachine = OldHumanoid.EvaluateStateMachine
+        Hum:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
+        Hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+        Hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
     end)
+    -- NOTA: estado Dead propositalmente INTACTO (ver cabecalho).
+end
 
-    --==================================================
-    -- SAVE ALL HUMANOID STATE SETTINGS
-    --==================================================
-    local SavedStates = {}
-    local States = {
-        Enum.HumanoidStateType.FallingDown,
-        Enum.HumanoidStateType.Running,
-        Enum.HumanoidStateType.RunningNoPhysics,
-        Enum.HumanoidStateType.Climbing,
-        Enum.HumanoidStateType.StrafingNoPhysics,
-        Enum.HumanoidStateType.Ragdoll,
-        Enum.HumanoidStateType.GettingUp,
-        Enum.HumanoidStateType.Jumping,
-        Enum.HumanoidStateType.Landed,
-        Enum.HumanoidStateType.Flying,
-        Enum.HumanoidStateType.Freefall,
-        Enum.HumanoidStateType.Seated,
-        Enum.HumanoidStateType.PlatformStanding,
-        Enum.HumanoidStateType.Dead,
-        Enum.HumanoidStateType.Swimming,
-        Enum.HumanoidStateType.Physics,
-    }
-
-    for _, State in ipairs(States) do
-        local Success, Enabled = pcall(function()
-            return OldHumanoid:GetStateEnabled(State)
-        end)
-        if Success then
-            SavedStates[State] = Enabled
-        end
-    end
-
-    --==================================================
-    -- CLONE HUMANOID
-    --==================================================
-    local NewHumanoid = OldHumanoid:Clone()
-    if not NewHumanoid then
-        warn("[ASTHETIC] Failed to clone Humanoid")
-        return
-    end
-    NewHumanoid.Name = OldHumanoid.Name
-
-    --==================================================
-    -- MOVE HUMANOID CHILDREN
-    --==================================================
-    for _, Child in ipairs(OldHumanoid:GetChildren()) do
-        local ExistingCloneChild = NewHumanoid:FindFirstChild(Child.Name)
-        if ExistingCloneChild then
-            pcall(function()
-                ExistingCloneChild:Destroy()
-            end)
-        end
-        pcall(function()
-            Child.Parent = NewHumanoid
-        end)
-    end
-
-    --==================================================
-    -- IMPORTANT REPLACEMENT ORDER
-    --==================================================
-    OldHumanoid:Destroy()
-    task.wait()
-    NewHumanoid.Parent = Character
-    task.wait()
-
-    if not NewHumanoid.Parent then
-        warn("[ASTHETIC] New Humanoid was removed")
-        return
-    end
-
-    print("[ASTHETIC] New Humanoid:", NewHumanoid)
-
-    --==================================================
-    -- UPDATE CHARACTER SYSTEM
-    --==================================================
-    if _G.ASTHETIC_CharacterSystem then
-        _G.ASTHETIC_CharacterSystem.CurrentHumanoid = NewHumanoid
-        _G.ASTHETIC_CharacterSystem.CurrentRoot = Character:FindFirstChild("HumanoidRootPart")
-        print("[ASTHETIC] CharacterSystem Updated with New Humanoid")
-    end
-
-    --==================================================
-    -- RESTORE JUMP PROPERTIES
-    --==================================================
+local function RemoveStateShield(Hum)
+    if not Hum then return end
     pcall(function()
-        NewHumanoid.UseJumpPower = SavedJumpProperties.UseJumpPower
+        Hum:SetStateEnabled(Enum.HumanoidStateType.Physics, true)
+        Hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
+        Hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
     end)
-    pcall(function()
-        NewHumanoid.JumpPower = SavedJumpProperties.JumpPower
-    end)
-    pcall(function()
-        NewHumanoid.JumpHeight = SavedJumpProperties.JumpHeight
-    end)
-
-    --==================================================
-    -- RESTORE EVALUATE STATE MACHINE
-    --==================================================
-    pcall(function()
-        if SavedEvaluateStateMachine ~= nil then
-            NewHumanoid.EvaluateStateMachine = SavedEvaluateStateMachine
-        end
-    end)
-
-    --==================================================
-    -- RESTORE HUMANOID STATE SETTINGS
-    --==================================================
-    for State, Enabled in pairs(SavedStates) do
-        pcall(function()
-            NewHumanoid:SetStateEnabled(State, Enabled)
-        end)
-    end
-
-    --==================================================
-    -- ENSURE ANIMATOR
-    --==================================================
-    local Animator = NewHumanoid:FindFirstChildOfClass("Animator")
-    if not Animator then
-        Animator = Instance.new("Animator")
-        Animator.Parent = NewHumanoid
-    end
-    print("[ASTHETIC] Animator:", Animator)
-
-    --==================================================
-    -- RESTART ANIMATE
-    --==================================================
-    local Animate = Character:FindFirstChild("Animate")
-    if Animate then
-        print("[ASTHETIC] Restarting Animate...")
-        pcall(function()
-            Animate.Disabled = true
-        end)
-        task.wait()
-        pcall(function()
-            Animate.Disabled = false
-        end)
-        print("[ASTHETIC] Animate restarted")
-    end
-
-    task.wait(0.15)
-
-    --==================================================
-    -- ANTI DEATH FUNCTIONS
-    --==================================================
-    local function LockHealth()
-        if GodMode and NewHumanoid and NewHumanoid.Parent then
-            pcall(function()
-                NewHumanoid.MaxHealth = math.huge
-                NewHumanoid.Health = math.huge
-            end)
-        end
-    end
-
-    local function BlockDeathState()
-        if not NewHumanoid or not NewHumanoid.Parent then return end
-        pcall(function()
-            NewHumanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-        end)
-        pcall(function()
-            NewHumanoid.BreakJointsOnDeath = false
-        end)
-        pcall(function()
-            NewHumanoid.RequiresNeck = false
-        end)
-    end
-
-    local function BindAntiDeath(Humanoid)
-        if not Humanoid then return end
-        Humanoid.HealthChanged:Connect(function(Health)
-            if GodMode and Humanoid and Humanoid.Parent then
-                if Health < Humanoid.MaxHealth then
-                    pcall(function()
-                        Humanoid.Health = Humanoid.MaxHealth
-                    end)
-                end
-            end
-        end)
-        Humanoid.Died:Connect(function()
-            if GodMode and Humanoid and Humanoid.Parent then
-                pcall(function()
-                    Humanoid.Health = Humanoid.MaxHealth
-                end)
-            end
-        end)
-    end
-
-    LockHealth()
-    BlockDeathState()
-    BindAntiDeath(NewHumanoid)
-
-    task.spawn(function()
-        while task.wait(0.1) do
-            if GodMode and NewHumanoid and NewHumanoid.Parent then
-                pcall(function()
-                    if NewHumanoid.Health < NewHumanoid.MaxHealth then
-                        NewHumanoid.Health = NewHumanoid.MaxHealth
-                    end
-                    NewHumanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-                end)
-            end
-        end
-    end)
-
-    --==================================================
-    -- CONTROL MODULE
-    --==================================================
-    local function RefreshControls()
-        local PlayerScripts = Player:FindFirstChild("PlayerScripts")
-        if not PlayerScripts then
-            warn("[ASTHETIC] PlayerScripts not found")
-            return
-        end
-        local PlayerModule = PlayerScripts:FindFirstChild("PlayerModule")
-        if not PlayerModule then
-            warn("[ASTHETIC] PlayerModule not found")
-            return
-        end
-        local Success, Module = pcall(function()
-            return require(PlayerModule)
-        end)
-        if not Success or not Module then
-            warn("[ASTHETIC] Failed to require PlayerModule")
-            return
-        end
-        local Controls
-        pcall(function()
-            Controls = Module:GetControls()
-        end)
-        if not Controls then
-            warn("[ASTHETIC] Controls not found")
-            return
-        end
-        pcall(function()
-            Controls:OnCharacterAdded(Character)
-        end)
-        task.wait()
-        pcall(function()
-            Controls:UpdateActiveControlModuleEnabled()
-        end)
-        task.wait()
-        print("[ASTHETIC] Controls Humanoid:", Controls.humanoid)
-        print("[ASTHETIC] Same Humanoid:", Controls.humanoid == NewHumanoid)
-    end
-
-    RefreshControls()
-
-    --==================================================
-    -- CAMERA
-    --==================================================
-    pcall(function()
-        local Camera = workspace.CurrentCamera
-        if Camera then
-            Camera.CameraSubject = NewHumanoid
-        end
-    end)
-
-    --==================================================
-    -- FINAL STATE RESTORE
-    --==================================================
-    task.wait(0.25)
-
-    if not Character.Parent then
-        return
-    end
-
-    local CurrentHumanoid = Character:FindFirstChildOfClass("Humanoid")
-    if CurrentHumanoid ~= NewHumanoid then
-        return
-    end
-
-    pcall(function()
-        NewHumanoid.UseJumpPower = SavedJumpProperties.UseJumpPower
-    end)
-    pcall(function()
-        NewHumanoid.JumpPower = SavedJumpProperties.JumpPower
-    end)
-    pcall(function()
-        NewHumanoid.JumpHeight = SavedJumpProperties.JumpHeight
-    end)
-    pcall(function()
-        if SavedEvaluateStateMachine ~= nil then
-            NewHumanoid.EvaluateStateMachine = SavedEvaluateStateMachine
-        end
-    end)
-
-    for State, Enabled in pairs(SavedStates) do
-        pcall(function()
-            NewHumanoid:SetStateEnabled(State, Enabled)
-        end)
-    end
-
-    LockHealth()
-    BlockDeathState()
-    RefreshControls()
-
-    pcall(function()
-        local Camera = workspace.CurrentCamera
-        if Camera then
-            Camera.CameraSubject = NewHumanoid
-        end
-    end)
-
-    --==================================================
-    -- FINAL ANIMATE RESTART
-    --==================================================
-    local CurrentAnimate = Character:FindFirstChild("Animate")
-    if CurrentAnimate then
-        pcall(function()
-            CurrentAnimate.Disabled = true
-        end)
-        task.wait()
-        pcall(function()
-            CurrentAnimate.Disabled = false
-        end)
-    end
-
-    --==================================================
-    -- ✅ RESTART FEATURES តាមរយៈ CHARACTER SYSTEM
-    --==================================================
-    if _G.ASTHETIC_CharacterSystem then
-        task.spawn(function()
-            task.wait(0.5)
-            _G.ASTHETIC_CharacterSystem:RestartAllFeatures()
-        end)
-    end
-
-    print("")
-    print("========================================")
-    print("[ASTHETIC] HUMANOID REPLACE + ANTI DEATH COMPLETE")
-    print("========================================")
 end
 
 -- ==================================================
--- RUN IMMEDIATELY
+-- RESTORE CAPPED: so cobre DANO, nunca passa do max
+-- original. Cura do jogo continua funcionando (sobe o
+-- baseline em vez de ser sobrescrita).
 -- ==================================================
+local function OnHealthChanged(NewHealth)
+    if not Enabled then return end
+    local Hum = GetHum()
+    if not Hum or Hum.Health <= 0 then return end -- morte real: respawn limpo
+    if type(NewHealth) ~= "number" then return end
+
+    if LastGoodHealth and NewHealth < LastGoodHealth then
+        if os.clock() - LastRestore >= RESTORE_COOLDOWN then
+            LastRestore = os.clock()
+            local Cap = OrigMaxHealth or Hum.MaxHealth
+            local Target = math.min(LastGoodHealth, Cap)
+            pcall(function()
+                Hum.Health = Target
+            end)
+            return -- nao atualiza baseline: proximo dano compara com o valor pre-dano
+        end
+        return
+    end
+    LastGoodHealth = NewHealth
+end
+
+local function HookCharacter(Char)
+    if not Char or HookedChar == Char then return end
+    HookedChar = Char
+    if HealthConn then pcall(function() HealthConn:Disconnect() end) HealthConn = nil end
+
+    local Hum = Char:WaitForChild("Humanoid", 10)
+    if not Hum then return end
+    -- guarda o max ORIGINAL e nunca escreve nele (escrever = kick)
+    OrigMaxHealth = Hum.MaxHealth
+    LastGoodHealth = Hum.Health
+    ApplyStateShield(Hum)
+    HealthConn = Hum.HealthChanged:Connect(OnHealthChanged)
+end
+
+-- ==================================================
+-- VOID RESCUE (0.25s, barato)
+-- ==================================================
+local function StartWatch()
+    if WatchThread then return end
+    WatchThread = task.spawn(function()
+        while Enabled do
+            task.wait(0.25)
+            if not Enabled then break end
+            local _, Root = GetHum()
+            if Root and Root.Position.Y < VOID_Y then
+                pcall(function()
+                    Root.CFrame = CFrame.new(SAFE_ZONE)
+                    Root.AssemblyLinearVelocity = Vector3.zero
+                    Root.AssemblyAngularVelocity = Vector3.zero
+                end)
+                print("[Bypass] Void rescue -> Safe Zone")
+            end
+        end
+        WatchThread = nil
+    end)
+end
+
+-- ==================================================
+-- ENABLE / DISABLE
+-- ==================================================
+local function Enable()
+    if Enabled then return end
+    Enabled = true
+    LastRestore = 0
+    if Player.Character then
+        task.spawn(HookCharacter, Player.Character)
+    end
+    if not RespawnConn then
+        RespawnConn = Player.CharacterAdded:Connect(function(Char)
+            HookedChar = nil
+            if Enabled then
+                task.wait(1)
+                HookCharacter(Char)
+            end
+        end)
+    end
+    StartWatch()
+    print("[Bypass] Shield ON (stealth, sem replace, sem inf)")
+end
+
+local function Disable()
+    if not Enabled then return end
+    Enabled = false
+    if HealthConn then pcall(function() HealthConn:Disconnect() end) HealthConn = nil end
+    local Hum = GetHum()
+    RemoveStateShield(Hum)
+    HookedChar = nil
+    print("[Bypass] Shield OFF")
+end
+
+-- ==================================================
+-- EXPORT
+-- ==================================================
+_G.ASTHETIC_BypassAntiCheat = {
+    Enable = Enable,
+    Disable = Disable,
+    IsEnabled = function() return Enabled end,
+}
+
+-- Auto-liga o shield passivo (seguro: nenhuma escrita
+-- replicada com valor impossivel). O replace assassino
+-- da V1 foi removido — nao existe mais auto-kick no load.
 task.spawn(function()
-    task.wait(2) -- រង់ចាំ Features ផ្សេង Load មុន
-    RunBypassAntiCheat()
+    task.wait(2)
+    if not Enabled then
+        pcall(Enable)
+    end
 end)
 
-print("✅ BypassAntiCheat Feature Loaded (Restart Features via CharacterSystem)")
+print("✅ BypassAntiCheat V2 Loaded (stealth: capped restore + state shield + void rescue)")
