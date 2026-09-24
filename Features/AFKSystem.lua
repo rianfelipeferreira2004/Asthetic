@@ -130,6 +130,19 @@ end
 -- FLY TP (✅ Fly ធម្មតា → Stop ភ្លាម → មិន Lock)
 -- ==================================================
 local function FlyTP(Destination, Callback)
+    -- stealth/BAC: movimento legit via MoveEngine
+    local ME = _G.ASTHETIC_MoveEngine
+    if _G.ASTHETIC_Stealth ~= false and ME then
+        ME.Go(Destination, 40, {
+            Timeout = 25,
+            ShouldStop = function() return not AFKEnabled end,
+            OnArrive = function(ok)
+                if ok and Callback then Callback() end
+            end,
+        })
+        return
+    end
+
     CleanupMovers()
     IsFlying = true
 

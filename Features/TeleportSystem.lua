@@ -298,6 +298,12 @@ end
 -- LOCK AT TARGET (Y+1)
 -- ==================================================
 local function StartLock(TargetPosition)
+    -- stealth/BAC: hover via velocidade em vez de CFrame pinado
+    local ME = _G.ASTHETIC_MoveEngine
+    if _G.ASTHETIC_Stealth ~= false and ME then
+        ME.Hold(TargetPosition + Vector3.new(0, LOCK_ABOVE, 0), function() return not Running end)
+        return
+    end
     TargetLockedCFrame = CFrame.new(TargetPosition + Vector3.new(0, LOCK_ABOVE, 0))
 
     if LockConnection then
@@ -392,6 +398,21 @@ end
 -- FLY TP
 -- ==================================================
 local function FlyTP(Destination, Speed, UseShotTP, IsSafeZone, Callback)
+    -- stealth/BAC: movimento legit via MoveEngine
+    local ME = _G.ASTHETIC_MoveEngine
+    if _G.ASTHETIC_Stealth ~= false and ME then
+        ME.Go(Destination, math.min(Speed, 60), {
+            ArriveDist = IsSafeZone and 4 or 3,
+            Timeout = 60,
+            ShouldStop = function() return not Running end,
+            OnArrive = function()
+                StartLock(Destination)
+                if Callback then Callback() end
+            end,
+        })
+        return
+    end
+
     CleanupMovers()
 
     local Hum, Root = GetHumanoid()

@@ -377,12 +377,20 @@ local function CleanupFly()
     end
 end
 
-local function SelfFlyTP(Destination, Speed, MyRun)
-    CleanupFly()
-    -- stealth: cap de velocidade (snap/voo absurdo = movement check)
-    if _G.ASTHETIC_Stealth ~= false then
-        Speed = math.min(Speed, 350)
+local function SelfFlyTP(Destination, Speed, MyRun, Callback)
+    -- stealth/BAC: movimento legit via MoveEngine (sem BodyMovers,
+    -- sem snap de CFrame). Polling do FlyToSafeZoneAndWait segue
+    -- funcionando (posicao converge sozinha).
+    local ME = _G.ASTHETIC_MoveEngine
+    if _G.ASTHETIC_Stealth ~= false and ME then
+        ME.Go(Destination, math.min(Speed, 60), {
+            Timeout = 60,
+            ShouldStop = function() return not FarmingEnabled or MyRun ~= RunId end,
+            OnArrive = Callback,
+        })
+        return true
     end
+    CleanupFly()
     local Hum, Root = GetHumanoid()
     if not Hum or not Root or Hum.Health <= 0 then return false end
     Hum.PlatformStand = true

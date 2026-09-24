@@ -328,6 +328,12 @@ end
 -- ==================================================
 local function StartLock(TargetPosition, LockAbove)
     LockAbove = LockAbove or LOCK_ABOVE
+    -- stealth/BAC: hover via velocidade em vez de CFrame pinado
+    local ME = _G.ASTHETIC_MoveEngine
+    if _G.ASTHETIC_Stealth ~= false and ME then
+        ME.Hold(TargetPosition + Vector3.new(0, LockAbove, 0), function() return not Running end)
+        return
+    end
     TargetLockedCFrame = CFrame.new(TargetPosition + Vector3.new(0, LockAbove, 0))
 
     if LockConnection then
@@ -422,10 +428,25 @@ end
 -- FLY TP
 -- ==================================================
 local function FlyTP(Destination, Speed, UseShotTP, IsSafeZone, Callback, LockAbove)
+    -- stealth/BAC: movimento legit via MoveEngine (sem BodyMovers,
+    -- sem snap). Fallback p/ fly legado se ausente/desligado.
+    local ME = _G.ASTHETIC_MoveEngine
+    if _G.ASTHETIC_Stealth ~= false and ME then
+        ME.Go(Destination, math.min(Speed, 60), {
+            ArriveDist = IsSafeZone and 4 or 3,
+            Timeout = 60,
+            ShouldStop = function() return not Running end,
+            OnArrive = function()
+                StartLock(Destination, LockAbove)
+                if Callback then Callback() end
+            end,
+        })
+        return
+    end
+
     CleanupMovers()
 
-    -- stealth: voo continuo capped em vez de snap; snap instantaneo
-    -- atraves do mapa e o vetor mais obvio p/ movement check
+    -- stealth sem MoveEngine: ao menos capa a velocidade
     if _G.ASTHETIC_Stealth ~= false then
         Speed = math.min(Speed, 350)
     end

@@ -300,6 +300,9 @@ loadstring(GetScript("Features/AntiTrap.lua"))()
 Loading.Update(36, "GodMode...")
 loadstring(GetScript("Features/GodMode.lua"))()
 
+Loading.Update(38, "Motor de movimento...")
+loadstring(GetScript("Features/MoveEngine.lua"))()
+
 Loading.Update(39, "Teleportes...")
 loadstring(GetScript("Features/TeleportSystem.lua"))()
 
